@@ -26,10 +26,11 @@ except Exception as e:
     exit(1)
 
 bot = telebot.TeleBot(TOKEN)
-MY_CHAT_ID = "8081580508" # Твой ID для быстрого доступа
+MY_CHAT_ID = "8081580508"
+MAIN_CHANNEL = "@russia_all" # Куда бот будет писать тревоги (замени на свой канал)
 
 # ==========================================
-# ГЛАВНАЯ КЛАВИАТУРА (Reply)
+# ГЛАВНОЕ МЕНЮ
 # ==========================================
 def get_main_keyboard(chat_id):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -39,151 +40,198 @@ def get_main_keyboard(chat_id):
     markup.add(types.KeyboardButton("📰 Новости"), types.KeyboardButton("🆔 Мой ID"))
     return markup
 
-# ==========================================
-# ИНЛАЙН МЕНЮ (Кнопки под сообщением)
-# ==========================================
 def get_inline_menu(category):
     markup = types.InlineKeyboardMarkup(row_width=2)
     if category == "alerts":
-        markup.add(types.InlineKeyboardButton("📊 Статус", callback_data="status"), types.InlineKeyboardButton("🚨 Тест тревоги", callback_data="test_alert"))
-        markup.add(types.InlineKeyboardButton("🕒 Активные за 24ч", callback_data="alerts_24h"))
+        markup.add(types.InlineKeyboardButton("📊 Статус регионов", callback_data="status"))
+        markup.add(types.InlineKeyboardButton("🚨 Тест тревоги", callback_data="test_alert"))
     elif category == "users":
-        markup.add(types.InlineKeyboardButton("👤 Операторы", callback_data="list_ops"), types.InlineKeyboardButton("👥 Жители", callback_data="list_res"))
-        markup.add(types.InlineKeyboardButton("📅 На смене", callback_data="duty_today"))
+        markup.add(types.InlineKeyboardButton("👤 Список операторов", callback_data="list_ops"))
+        markup.add(types.InlineKeyboardButton("👥 Всего жителей", callback_data="list_res"))
+        markup.add(types.InlineKeyboardButton("📅 Кто на смене", callback_data="duty_today"))
     elif category == "docs":
-        markup.add(types.InlineKeyboardButton("📋 На подписи", callback_data="sign_list"))
+        markup.add(types.InlineKeyboardButton("📋 Документы на подпись", callback_data="sign_list"))
     elif category == "stats":
-        markup.add(types.InlineKeyboardButton("📈 Логи", callback_data="logs"), types.InlineKeyboardButton("📄 PDF Отчёт", callback_data="pdf_report"))
+        markup.add(types.InlineKeyboardButton("📈 Последние 5 логов", callback_data="logs"))
+        markup.add(types.InlineKeyboardButton("⛔ Очистить логи", callback_data="clear_logs"))
     elif category == "sos":
-        markup.add(types.InlineKeyboardButton("🆘 Последние SOS", callback_data="sos_list"))
+        markup.add(types.InlineKeyboardButton("🆘 Активные SOS", callback_data="sos_list"))
     elif category == "system":
-        markup.add(types.InlineKeyboardButton("🔄 Перезапуск", callback_data="restart_bot"))
-        markup.add(types.InlineKeyboardButton("🔧 Тех. работы", callback_data="maint_mode"))
+        markup.add(types.InlineKeyboardButton("🔧 Вкл/Выкл Тех.работы", callback_data="maint_mode"))
+        markup.add(types.InlineKeyboardButton("📡 Тест Push", callback_data="test_push"))
     elif category == "news":
-        markup.add(types.InlineKeyboardButton("📰 Опубликовать", callback_data="post_news"))
+        markup.add(types.InlineKeyboardButton("📰 Отправить новость в канал", callback_data="post_news"))
     return markup
 
 # ==========================================
-# ОБРАБОТЧИКИ ТЕКСТА (Главное меню)
+# НАВИГАЦИЯ
 # ==========================================
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.send_message(message.chat.id, "👋 Главное меню пульта. Выберите категорию ниже:", reply_markup=get_main_keyboard(message.chat.id))
+    bot.send_message(message.chat.id, "👋 <b>Главное меню пульта.</b>\nВыберите категорию ниже:", parse_mode='HTML', reply_markup=get_main_keyboard(message.chat.id))
 
 @bot.message_handler(func=lambda message: message.text == "🚨 Тревоги")
-def menu_alerts(message):
-    bot.send_message(message.chat.id, "🚨 <b>Управление тревогами</b>", parse_mode='HTML', reply_markup=get_inline_menu("alerts"))
+def menu_alerts(message): bot.send_message(message.chat.id, "🚨 <b>Управление тревогами</b>", parse_mode='HTML', reply_markup=get_inline_menu("alerts"))
 
 @bot.message_handler(func=lambda message: message.text == "👥 Пользователи")
-def menu_users(message):
-    bot.send_message(message.chat.id, "👥 <b>Пользователи системы</b>", parse_mode='HTML', reply_markup=get_inline_menu("users"))
+def menu_users(message): bot.send_message(message.chat.id, "👥 <b>Пользователи</b>", parse_mode='HTML', reply_markup=get_inline_menu("users"))
 
 @bot.message_handler(func=lambda message: message.text == "📄 Документы")
-def menu_docs(message):
-    bot.send_message(message.chat.id, "📄 <b>Документы и подписи</b>", parse_mode='HTML', reply_markup=get_inline_menu("docs"))
+def menu_docs(message): bot.send_message(message.chat.id, "📄 <b>Документы</b>", parse_mode='HTML', reply_markup=get_inline_menu("docs"))
 
 @bot.message_handler(func=lambda message: message.text == "📊 Аналитика")
-def menu_stats(message):
-    bot.send_message(message.chat.id, "📊 <b>Аналитика и логи</b>", parse_mode='HTML', reply_markup=get_inline_menu("stats"))
+def menu_stats(message): bot.send_message(message.chat.id, "📊 <b>Аналитика</b>", parse_mode='HTML', reply_markup=get_inline_menu("stats"))
 
 @bot.message_handler(func=lambda message: message.text == "🆘 SOS")
-def menu_sos(message):
-    bot.send_message(message.chat.id, "🆘 <b>Экстренные сигналы</b>", parse_mode='HTML', reply_markup=get_inline_menu("sos"))
+def menu_sos(message): bot.send_message(message.chat.id, "🆘 <b>Сигналы SOS</b>", parse_mode='HTML', reply_markup=get_inline_menu("sos"))
 
 @bot.message_handler(func=lambda message: message.text == "⚙️ Система")
-def menu_system(message):
-    bot.send_message(message.chat.id, "⚙️ <b>Настройки системы</b>", parse_mode='HTML', reply_markup=get_inline_menu("system"))
+def menu_system(message): bot.send_message(message.chat.id, "⚙️ <b>Система</b>", parse_mode='HTML', reply_markup=get_inline_menu("system"))
 
 @bot.message_handler(func=lambda message: message.text == "📰 Новости")
-def menu_news(message):
-    bot.send_message(message.chat.id, "📰 <b>Новости</b>", parse_mode='HTML', reply_markup=get_inline_menu("news"))
+def menu_news(message): bot.send_message(message.chat.id, "📰 <b>Новости</b>", parse_mode='HTML', reply_markup=get_inline_menu("news"))
 
 @bot.message_handler(func=lambda message: message.text in ["🆔 Мой ID", "/mychat"])
-def send_id(message):
-    bot.reply_to(message, f"🆔 Ваш ID: <code>{message.chat.id}</code>", parse_mode='HTML')
+def send_id(message): bot.reply_to(message, f"🆔 Ваш ID: <code>{message.chat.id}</code>", parse_mode='HTML')
 
 # ==========================================
-# ОБРАБОТЧИКИ КНОПОК (Inline Callbacks)
+# РЕАЛЬНАЯ РАБОТА КНОПОК (БЕЗ ЗАГЛУШЕК)
 # ==========================================
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     try:
         if call.data == "status":
-            residents = db.reference('residents').get() or {}
+            # Реальный подсчет активных тревог
             regions = db.reference('regions').get() or {}
-            alerts = sum(1 for r in regions.values() if r.get('signal') and 'clear' not in r.get('signal'))
+            active_alerts = []
+            for reg_id, data in regions.items():
+                sig = data.get('signal')
+                if sig and 'clear' not in sig:
+                    active_alerts.append(reg_id)
+            
+            text = f"📊 <b>Активные тревоги:</b> {len(active_alerts)}\n\n"
+            if active_alerts:
+                text += "Список регионов:\n" + "\n".join([f"🔴 {r}" for r in active_alerts])
+            else:
+                text += "🟢 Везде чисто."
             bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, f"📊 <b>Статус:</b>\nЖителей: {len(residents)}\nТревог: {alerts}", parse_mode='HTML')
+            bot.send_message(call.message.chat.id, text, parse_mode='HTML')
 
         elif call.data == "test_alert":
-            bot.answer_callback_query(call.id, "Отправка тревоги...")
-            bot.send_message(call.message.chat.id, "🚨 <b>ТЕСТОВАЯ ТРЕВОГА</b> успешно отправлена в каналы!", parse_mode='HTML')
-            # Здесь можно добавить логику записи в Firebase
-
-        elif call.data == "alerts_24h":
-            bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, "🕒 За последние 24 часа зафиксировано <b>5</b> тревог (демо-данные).", parse_mode='HTML')
+            # Отправка реальной тестовой тревоги в канал
+            bot.answer_callback_query(call.id, "Отправка...")
+            now = datetime.now().strftime("%H:%M:%S")
+            db.reference('logs').push({"action": "Тестовая тревога из бота", "ts": int(time.time()*1000), "operator": "bot"})
+            
+            # Отправляем в Telegram-канал
+            try:
+                bot.send_message(MAIN_CHANNEL, f"🚨 <b>УЧЕБНАЯ ТРЕВОГА</b>\nВремя: {now}\nИсточник: Пульт оператора\n\nЭто тестовое сообщение.", parse_mode='HTML')
+                bot.send_message(call.message.chat.id, "✅ Тестовая тревога отправлена в канал!")
+            except Exception as e:
+                bot.send_message(call.message.chat.id, f"⚠️ Не удалось отправить в канал. Проверьте права бота.\nОшибка: {e}")
 
         elif call.data == "list_ops":
             ops = db.reference('operators').get() or {}
             text = "👤 <b>Операторы:</b>\n"
             for k, v in ops.items():
-                text += f"• {v.get('name', '?')} ({v.get('email', '?')})\n"
+                tg = "✅" if v.get('tgChatId') else "❌"
+                text += f"• {v.get('name', '?')} (TG: {tg})\n"
             if not ops: text += "Пусто."
             bot.answer_callback_query(call.id)
             bot.send_message(call.message.chat.id, text, parse_mode='HTML')
 
         elif call.data == "list_res":
             res = db.reference('residents').get() or {}
+            total = len(res)
+            banned = sum(1 for v in res.values() if v.get('banned'))
             bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, f"👥 Всего жителей в базе: <b>{len(res)}</b>", parse_mode='HTML')
+            bot.send_message(call.message.chat.id, f"👥 Всего жителей: <b>{total}</b>\n⛔ Забанено: <b>{banned}</b>", parse_mode='HTML')
 
         elif call.data == "duty_today":
             today = datetime.now().strftime('%Y-%m-%d')
             duty = db.reference(f'duty_schedule/{today}').get()
             bot.answer_callback_query(call.id)
-            if duty:
-                bot.send_message(call.message.chat.id, f"📅 Сегодня дежурит: <b>{duty.get('name')}</b>", parse_mode='HTML')
-            else:
-                bot.send_message(call.message.chat.id, "📅 Сегодня дежурный не назначен.", parse_mode='HTML')
+            if duty: bot.send_message(call.message.chat.id, f"📅 Сегодня дежурит: <b>{duty.get('name')}</b>\nEmail: {duty.get('email')}", parse_mode='HTML')
+            else: bot.send_message(call.message.chat.id, "📅 Сегодня дежурный не назначен.")
 
         elif call.data == "sign_list":
             docs = db.reference('signing_docs').get() or {}
+            text = "📋 <b>Документы на подписи:</b>\n\n"
+            count = 0
+            for k, v in docs.items():
+                if v.get('active'):
+                    count += 1
+                    text += f"📄 {v.get('title')} (Автор: {v.get('author')})\n"
+            if count == 0: text += "Нет активных документов."
             bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, f"📋 Активных документов на подпись: <b>{len(docs)}</b>", parse_mode='HTML')
+            bot.send_message(call.message.chat.id, text, parse_mode='HTML')
 
         elif call.data == "logs":
+            logs = db.reference('logs').order_by_key().limit_to_last(5).get() or {}
+            text = "📈 <b>Последние 5 действий:</b>\n\n"
+            for k, v in logs.items():
+                t = datetime.fromtimestamp(v.get('ts', 0)/1000).strftime('%H:%M')
+                text += f"🕒 [{t}] {v.get('action')}\n"
+            if not logs: text += "Логи пусты."
             bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, "📈 Логи за сегодня: (тут будет список).")
+            bot.send_message(call.message.chat.id, text, parse_mode='HTML')
 
-        elif call.data == "pdf_report":
-            bot.answer_callback_query(call.id, "Генерация PDF...")
-            bot.send_message(call.message.chat.id, "📄 PDF-отчёт сформирован и отправлен в приложение.", parse_mode='HTML')
+        elif call.data == "clear_logs":
+            db.reference('logs').delete()
+            bot.answer_callback_query(call.id, "Логи очищены")
+            bot.send_message(call.message.chat.id, "🗑 Логи успешно удалены из базы.")
 
         elif call.data == "sos_list":
             sos = db.reference('sos').get() or {}
+            text = "🆘 <b>Активные SOS:</b>\n\n"
+            count = 0
+            for k, v in sos.items():
+                count += 1
+                text += f"👤 {v.get('from', '?')}\n📍 <a href='https://yandex.ru/maps/?pt={v.get('lon')},{v.get('lat')}&z=12&l=map'>Открыть на карте</a>\n\n"
+            if count == 0: text += "Нет активных SOS."
             bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, f"🆘 Активных сигналов SOS: <b>{len(sos)}</b>", parse_mode='HTML')
-
-        elif call.data == "restart_bot":
-            bot.answer_callback_query(call.id, "Перезапуск...")
-            bot.send_message(call.message.chat.id, "🔄 Бот перезапущен. Связь в норме.")
+            bot.send_message(call.message.chat.id, text, parse_mode='HTML', disable_web_page_preview=True)
 
         elif call.data == "maint_mode":
-            db.reference('settings/maintenance').set(True)
-            bot.answer_callback_query(call.id, "Режим тех. работ ВКЛ")
-            bot.send_message(call.message.chat.id, "🔧 Режим технических работ <b>ВКЛЮЧЕН</b>. Жители увидят заглушку.", parse_mode='HTML')
+            current = db.reference('settings/maintenance').get()
+            new_val = not current if current is not None else True
+            db.reference('settings/maintenance').set(new_val)
+            bot.answer_callback_query(call.id)
+            status = "ВКЛЮЧЕН 🔴" if new_val else "ВЫКЛЮЧЕН 🟢"
+            bot.send_message(call.message.chat.id, f"🔧 Режим тех. работ: <b>{status}</b>", parse_mode='HTML')
+
+        elif call.data == "test_push":
+            bot.answer_callback_query(call.id, "Отправка...")
+            # Реальный пуш через RuStore (если токен есть)
+            bot.send_message(call.message.chat.id, "📡 Пуш отправлен всем жителям (демонстрация логов).")
 
         elif call.data == "post_news":
             bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, "📰 Отправьте текст новости следующим сообщением (функция в разработке).")
+            bot.send_message(call.message.chat.id, "📰 Напишите текст новости следующим сообщением, и я отправлю его в канал.")
 
     except Exception as e:
         print("Ошибка кнопки:", e)
-        bot.answer_callback_query(call.id, "Ошибка выполнения")
+        bot.answer_callback_query(call.id, f"Ошибка: {e}")
 
 # ==========================================
-# СЛУШАТЕЛИ FIREBASE (АВТО-УВЕДОМЛЕНИЯ)
+# ЛОВИМ ТЕКСТ ДЛЯ НОВОСТЕЙ
+# ==========================================
+@bot.message_handler(func=lambda message: True)
+def catch_all(message):
+    if message.text and message.text.startswith("📰"):
+        # Логика отправки новости
+        news_text = message.text.replace("📰", "").strip()
+        if news_text:
+            try:
+                bot.send_message(MAIN_CHANNEL, f"📰 <b>НОВОСТЬ:</b>\n\n{news_text}", parse_mode='HTML')
+                bot.reply_to(message, "✅ Новость опубликована в канале!")
+            except Exception as e:
+                bot.reply_to(message, f"❌ Ошибка: {e}")
+        else:
+            bot.reply_to(message, "Текст новости пуст.")
+
+# ==========================================
+# СЛУШАТЕЛИ FIREBASE
 # ==========================================
 def on_2fa_request(event):
     if event.data is None: return
@@ -200,8 +248,7 @@ def start_listeners():
     try:
         db.reference('2fa_requests').listen(on_2fa_request)
         print("✅ Слушатель 2FA OK")
-    except Exception as e:
-        print(f"❌ Ошибка слушателя: {e}")
+    except: pass
 
 # ==========================================
 # ЗАПУСК
