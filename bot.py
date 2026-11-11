@@ -2,7 +2,6 @@ import os
 import json
 import threading
 import time
-from datetime import datetime
 from flask import Flask
 import telebot
 from telebot import types
@@ -27,246 +26,200 @@ except Exception as e:
 
 bot = telebot.TeleBot(TOKEN)
 MY_CHAT_ID = "8081580508"
-MAIN_CHANNEL = "@russia_all"
 
 # ==========================================
-# ГЛАВНОЕ МЕНЮ
+# ВСЕ 89 РЕГИОНОВ И ИХ КАНАЛЫ
+# Формат: "Название": ("код_базы", "@канал")
 # ==========================================
-def get_main_keyboard(chat_id):
+REGIONS = {
+    "Москва": ("moskva", "@msk_moskva_radar"),
+    "Московская обл.": ("moskovskaya_obl", "@mo_alerts"),
+    "Санкт-Петербург": ("spb", "@spb_alerts"),
+    "Ленинградская обл.": ("leningradskaya_obl", "@lo_alerts"),
+    "Рязань": ("ryazan", "@ryz_ryzan_radar"),
+    "Рязанская обл.": ("ryazanskaya_obl", "@ryz_ryzan_radar"),
+    "Тверская обл.": ("tverskaya_obl", "@tver_alerts"),
+    "Тульская обл.": ("tulskaya_obl", "@tula_alerts"),
+    "Калужская обл.": ("kaluzhskaya_obl", "@kaluga_alerts"),
+    "Смоленская обл.": ("smolenskaya_obl", "@smolensk_alerts"),
+    "Брянская обл.": ("bryanskaya_obl", "@bryansk_alerts"),
+    "Орловская обл.": ("orlovskaya_obl", "@orel_alerts"),
+    "Курская обл.": ("kurskaya_obl", "@kursk_alerts"),
+    "Белгородская обл.": ("belgorodskaya_obl", "@belgorod_alerts"),
+    "Воронежская обл.": ("voronezhskaya_obl", "@voronezh_alerts"),
+    "Липецкая обл.": ("lipetskaya_obl", "@lipetsk_alerts"),
+    "Тамбовская обл.": ("tambovskaya_obl", "@tambov_alerts"),
+    "Пензенская обл.": ("penzenskaya_obl", "@penza_alerts"),
+    "Саратовская обл.": ("saratovskaya_obl", "@saratov_alerts"),
+    "Волгоградская обл.": ("volgogradskaya_obl", "@volgograd_alerts"),
+    "Астраханская обл.": ("astrahanskaya_obl", "@astrahan_alerts"),
+    "Ростовская обл.": ("rostovskaya_obl", "@ros_rostov_radar"),
+    "Краснодарский край": ("krasnodarsky_kray", "@krasnodar_alerts"),
+    "Ставропольский край": ("stavropolsky_kray", "@stavropol_alerts"),
+    "Республика Крым": ("krym", "@crimea_alerts"),
+    "Севастополь": ("sevastopol", "@sevastopol_alerts"),
+    "Республика Дагестан": ("dagestan", "@dagestan_alerts"),
+    "Чеченская Республика": ("chechnya", "@chechnya_alerts"),
+    "Нижегородская обл.": ("nizhegorodskaya_obl", "@nizhny_alerts"),
+    "Кировская обл.": ("kirovskaya_obl", "@kirov_alerts"),
+    "Костромская обл.": ("kostromskaya_obl", "@kostroma_alerts"),
+    "Ярославская обл.": ("yaroslavskaya_obl", "@yaroslavl_alerts"),
+    "Владимирская обл.": ("vladimirskaya_obl", "@vladimir_alerts"),
+    "Ивановская обл.": ("ivanovskaya_obl", "@ivanovo_alerts"),
+    "Архангельская обл.": ("arhangelskaya_obl", "@arhangelsk_alerts"),
+    "Вологодская обл.": ("vologodskaya_obl", "@vologda_alerts"),
+    "Мурманская обл.": ("murmanskaya_obl", "@murmansk_alerts"),
+    "Новгородская обл.": ("novgorodskaya_obl", "@novgorod_alerts"),
+    "Псковская обл.": ("pskovskaya_obl", "@pskov_alerts"),
+    "Калининградская обл.": ("kaliningradskaya_obl", "@kaliningrad_alerts"),
+    "Республика Карелия": ("karelia", "@karelia_alerts"),
+    "Республика Коми": ("komi", "@komi_alerts"),
+    "Пермский край": ("permsky_kray", "@perm_alerts"),
+    "Удмуртия": ("udmurtia", "@udmurtia_alerts"),
+    "Свердловская обл.": ("sverdlovskaya_obl", "@sverdlovsk_alerts"),
+    "Курганская обл.": ("kurganskaya_obl", "@kurgan_alerts"),
+    "Тюменская обл.": ("tyumenskaya_obl", "@tyumen_alerts"),
+    "Челябинская обл.": ("chelyabinskaya_obl", "@chelyabinsk_alerts"),
+    "Оренбургская обл.": ("orenburgskaya_obl", "@orenburg_alerts"),
+    "Самарская обл.": ("samarskaya_obl", "@samara_alerts"),
+    "Ульяновская обл.": ("ulyanovskaya_obl", "@ulyanovsk_alerts"),
+    "Башкортостан": ("bashkortostan", "@bashkortostan_alerts"),
+    "Татарстан": ("tatarstan", "@tatarstan_alerts"),
+    "Марий Эл": ("mari_el", "@mari_alerts"),
+    "Мордовия": ("mordovia", "@mordovia_alerts"),
+    "Чувашия": ("chuvashia", "@chuvashia_alerts"),
+    "Ханты-Мансийский АО": ("hmao", "@hmao_alerts"),
+    "Ямало-Ненецкий АО": ("yamal", "@yamal_alerts"),
+    "Новосибирская обл.": ("novosibirskaya_obl", "@novosibirsk_alerts"),
+    "Омская обл.": ("omskaya_obl", "@omsk_alerts"),
+    "Томская обл.": ("tomskaya_obl", "@tomsk_alerts"),
+    "Кемеровская обл.": ("kemerovskaya_obl", "@kemerovo_alerts"),
+    "Алтайский край": ("altaysky_kray", "@altai_alerts"),
+    "Красноярский край": ("krasnoyarsky_kray", "@krasnoyarsk_alerts"),
+    "Иркутская обл.": ("irkutskaya_obl", "@irkutsk_alerts"),
+    "Забайкальский край": ("zabaykalsky_kray", "@zabaykalsky_alerts"),
+    "Республика Алтай": ("altai_rep", "@altai_rep_alerts"),
+    "Тыва": ("tyva", "@tyva_alerts"),
+    "Хакасия": ("hakasia", "@hakasia_alerts"),
+    "Бурятия": ("buryatia", "@buryatia_alerts"),
+    "Приморский край": ("primorsky_kray", "@primorsky_alerts"),
+    "Хабаровский край": ("habarovsky_kray", "@habarovsk_alerts"),
+    "Амурская обл.": ("amurskaya_obl", "@amur_alerts"),
+    "Магаданская обл.": ("magadanskaya_obl", "@magadan_alerts"),
+    "Сахалинская обл.": ("sakhalinskaya_obl", "@sakhalin_alerts"),
+    "Еврейская АО": ("evreyskaya_ao", "@jao_alerts"),
+    "Чукотский АО": ("chukotsky_ao", "@chukotka_alerts"),
+    "Камчатский край": ("kamchatsky_kray", "@kamchatka_alerts"),
+    "Якутия": ("saha", "@saha_alerts"),
+    "ВСЯ РОССИЯ": ("all_russia", "@russia_all")
+}
+
+# Список тревог
+ALERTS = [
+    ("⚠️ Угроза БПЛА", "drone"), 
+    ("🚀 Ракетная опасность", "rocket"),
+    ("🚨 Воздушная тревога", "air_alarm"), 
+    ("🟢 Общий отбой", "all_clear")
+]
+
+# ==========================================
+# МЕНЮ
+# ==========================================
+def get_main_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(types.KeyboardButton("🚨 Тревоги"), types.KeyboardButton("👥 Пользователи"))
-    markup.add(types.KeyboardButton("📄 Документы"), types.KeyboardButton("📊 Аналитика"))
-    markup.add(types.KeyboardButton("🆘 SOS"), types.KeyboardButton("⚙️ Система"))
-    markup.add(types.KeyboardButton("📰 Новости"), types.KeyboardButton("🆔 Мой ID"))
+    markup.add(types.KeyboardButton("🚨 Отправить тревогу"))
+    markup.add(types.KeyboardButton("🆔 Мой ID"))
     return markup
 
-def get_inline_menu(category):
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    if category == "alerts":
-        markup.add(types.InlineKeyboardButton("📊 Статус регионов", callback_data="status"))
-        markup.add(types.InlineKeyboardButton("🔕 Отбой всех", callback_data="all_clear"))
-        markup.add(types.InlineKeyboardButton("⏱ Последняя тревога", callback_data="last_alert"))
-    elif category == "users":
-        markup.add(types.InlineKeyboardButton("👤 Операторы", callback_data="list_ops"))
-        markup.add(types.InlineKeyboardButton("👥 Жители", callback_data="list_res"))
-        markup.add(types.InlineKeyboardButton("📅 На смене", callback_data="duty_today"))
-    elif category == "docs":
-        markup.add(types.InlineKeyboardButton("📋 На подписи", callback_data="sign_list"))
-        markup.add(types.InlineKeyboardButton("🔔 Напомнить", callback_data="remind_signs"))
-    elif category == "stats":
-        markup.add(types.InlineKeyboardButton("📈 Логи", callback_data="logs"))
-        markup.add(types.InlineKeyboardButton("📄 PDF Отчет", callback_data="pdf_report"))
-    elif category == "sos":
-        markup.add(types.InlineKeyboardButton("🆘 Активные SOS", callback_data="sos_list"))
-    elif category == "system":
-        markup.add(types.InlineKeyboardButton("🔧 Тех. работы", callback_data="maint_mode"))
-        markup.add(types.InlineKeyboardButton("📡 Тест Push", callback_data="test_push"))
-        # НОВОЕ: Подменю Безопасность
-        markup.add(types.InlineKeyboardButton("🛡 Безопасность", callback_data="security_menu"))
-    elif category == "news":
-        markup.add(types.InlineKeyboardButton("📰 Опубликовать", callback_data="post_news"))
-    elif category == "security":
-        markup.add(types.InlineKeyboardButton("🔒 Блокировка аккаунта", callback_data="lock_account"))
-        markup.add(types.InlineKeyboardButton("📱 История входов", callback_data="login_history"))
-        markup.add(types.InlineKeyboardButton("🚨 Экстренный созыв", callback_data="emergency_call"))
-    return markup
-
-# ==========================================
-# НАВИГАЦИЯ
-# ==========================================
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.send_message(message.chat.id, "👋 <b>Главное меню пульта.</b>\nВыберите категорию:", parse_mode='HTML', reply_markup=get_main_keyboard(message.chat.id))
+    bot.send_message(message.chat.id, "👋 <b>Быстрый пульт оператора.</b>\nНажмите кнопку ниже:", parse_mode='HTML', reply_markup=get_main_keyboard())
 
-@bot.message_handler(func=lambda message: message.text == "🚨 Тревоги")
-def menu_alerts(message): bot.send_message(message.chat.id, "🚨 <b>Тревоги</b>", parse_mode='HTML', reply_markup=get_inline_menu("alerts"))
-
-@bot.message_handler(func=lambda message: message.text == "👥 Пользователи")
-def menu_users(message): bot.send_message(message.chat.id, "👥 <b>Пользователи</b>", parse_mode='HTML', reply_markup=get_inline_menu("users"))
-
-@bot.message_handler(func=lambda message: message.text == "📄 Документы")
-def menu_docs(message): bot.send_message(message.chat.id, "📄 <b>Документы</b>", parse_mode='HTML', reply_markup=get_inline_menu("docs"))
-
-@bot.message_handler(func=lambda message: message.text == "📊 Аналитика")
-def menu_stats(message): bot.send_message(message.chat.id, "📊 <b>Аналитика</b>", parse_mode='HTML', reply_markup=get_inline_menu("stats"))
-
-@bot.message_handler(func=lambda message: message.text == "🆘 SOS")
-def menu_sos(message): bot.send_message(message.chat.id, "🆘 <b>SOS</b>", parse_mode='HTML', reply_markup=get_inline_menu("sos"))
-
-@bot.message_handler(func=lambda message: message.text == "⚙️ Система")
-def menu_system(message): bot.send_message(message.chat.id, "⚙️ <b>Система</b>", parse_mode='HTML', reply_markup=get_inline_menu("system"))
-
-@bot.message_handler(func=lambda message: message.text == "📰 Новости")
-def menu_news(message): bot.send_message(message.chat.id, "📰 <b>Новости</b>", parse_mode='HTML', reply_markup=get_inline_menu("news"))
-
-@bot.message_handler(func=lambda message: message.text in ["🆔 Мой ID", "/mychat"])
-def send_id(message): bot.reply_to(message, f"🆔 Ваш ID: <code>{message.chat.id}</code>", parse_mode='HTML')
+@bot.message_handler(func=lambda message: message.text == "🆔 Мой ID")
+def send_id(message):
+    bot.reply_to(message, f"🆔 Ваш ID: <code>{message.chat.id}</code>", parse_mode='HTML')
 
 # ==========================================
-# ФУНКЦИИ БЕЗОПАСНОСТИ И КНОПОК
+# ЛОГИКА ОТПРАВКИ ТРЕВОГИ
 # ==========================================
-@bot.callback_query_handler(func=lambda call: True)
-def callback_inline(call):
+@bot.message_handler(func=lambda message: message.text == "🚨 Отправить тревогу")
+def select_region(message):
+    markup = types.InlineKeyboardMarkup(row_width=3) # По 3 кнопки в ряд
+    buttons = []
+    for region_name in REGIONS.keys():
+        # В callback_data нельзя передавать длинные строки, используем индекс
+        idx = list(REGIONS.keys()).index(region_name)
+        buttons.append(types.InlineKeyboardButton(region_name, callback_data=f"reg_{idx}"))
+    markup.add(*buttons)
+    bot.send_message(message.chat.id, "🌍 <b>Шаг 1:</b> Выберите регион:", parse_mode='HTML', reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("reg_"))
+def select_alert(call):
+    idx = int(call.data.replace("reg_", ""))
+    region_name = list(REGIONS.keys())[idx]
+    
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    for alert_name, alert_code in ALERTS:
+        markup.add(types.InlineKeyboardButton(alert_name, callback_data=f"alert_{idx}_{alert_code}"))
+    
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                          text=f"🌍 Регион: <b>{region_name}</b>\n\n🚨 <b>Шаг 2:</b> Выберите тревогу:", 
+                          parse_mode='HTML', reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("alert_"))
+def send_alert(call):
+    parts = call.data.split("_")
+    idx = int(parts[1])
+    alert_code = parts[2]
+    
+    region_name = list(REGIONS.keys())[idx]
+    region_code, channel = REGIONS[region_name]
+    alert_name = next((name for name, code in ALERTS if code == alert_code), alert_code)
+
+    # 1. Запись в Firebase
+    db.reference(f'regions/{region_code}').update({
+        'signal': alert_code,
+        'ts': int(time.time() * 1000),
+        'source': 'telegram_bot'
+    })
+    
+    # 2. Лог
+    db.reference('logs').push({
+        'action': f"Тревога из бота: {alert_name} в {region_name}",
+        'ts': int(time.time() * 1000),
+        'operator': 'bot'
+    })
+
+    # 3. Отправка в канал
     try:
-        if call.data == "security_menu":
-            bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, "🛡 <b>Центр Безопасности</b>\nВыберите действие:", parse_mode='HTML', reply_markup=get_inline_menu("security"))
-
-        elif call.data == "lock_account":
-            bot.answer_callback_query(call.id)
-            keyboard = types.InlineKeyboardMarkup()
-            keyboard.add(types.InlineKeyboardButton("Да, заблокировать", callback_data="lock_confirm"))
-            bot.send_message(call.message.chat.id, "⚠️ <b>Внимание!</b> Вы уверены, что хотите удалённо заблокировать это устройство? Приложение выкинет вас из аккаунта.", reply_markup=keyboard, parse_mode='HTML')
-
-        elif call.data == "lock_confirm":
-            # Реальная блокировка в Firebase по твоему uid
-            # В приложении должна быть проверка поля 'blocked'
-            db.reference('settings/blocked_devices').child(str(call.message.chat.id)).set(True)
-            bot.answer_callback_query(call.id, "Заблокировано!")
-            bot.send_message(call.message.chat.id, "🔒 Ваше устройство заблокировано. Выйдите из приложения, чтобы снять блокировку.")
-
-        elif call.data == "login_history":
-            # Демо-история входов
-            bot.answer_callback_query(call.id)
-            text = "📱 <b>Последние входы:</b>\n\n1. 11.11.2026, 19:50 — Android 14 (Текущий)\n2. 10.11.2026, 09:12 — Android 13\n3. 09.11.2026, 22:30 — Web Browser"
-            bot.send_message(call.message.chat.id, text, parse_mode='HTML')
-
-        elif call.data == "emergency_call":
-            bot.answer_callback_query(call.id, "Рассылка...")
-            # Реальная рассылка всем операторам
-            ops = db.reference('operators').get() or {}
-            count = 0
-            for op in ops.values():
-                tg = op.get('tgChatId')
-                if tg:
-                    try:
-                        bot.send_message(tg, "🚨 <b>ЭКСТРЕННЫЙ СОЗЫВ!</b>\nВсем операторам срочно выйти на связь!", parse_mode='HTML')
-                        count += 1
-                    except: pass
-            bot.send_message(call.message.chat.id, f"✅ Экстренный созыв отправлен {count} операторам.")
-
-        elif call.data == "status":
-            regions = db.reference('regions').get() or {}
-            active = [k for k, v in regions.items() if v.get('signal') and 'clear' not in v.get('signal')]
-            text = f"📊 Активных тревог: <b>{len(active)}</b>\n" + ("\n".join(active) if active else "Везде чисто.")
-            bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, text, parse_mode='HTML')
-
-        elif call.data == "all_clear":
-            regions = db.reference('regions').get() or {}
-            for reg in regions.keys():
-                db.reference(f'regions/{reg}').update({'signal': 'all_clear'})
-            bot.answer_callback_query(call.id, "Отбой отправлен!")
-            bot.send_message(call.message.chat.id, "✅ Во все регионы отправлен сигнал <b>ОБЩИЙ ОТБОЙ</b>.", parse_mode='HTML')
-
-        elif call.data == "last_alert":
-            logs = db.reference('logs').order_by_key().limit_to_last(10).get() or {}
-            last = "Нет данных."
-            for k, v in reversed(list(logs.items())):
-                if 'тревога' in v.get('action', '').lower() or 'сигнал' in v.get('action', '').lower():
-                    t = datetime.fromtimestamp(v.get('ts', 0)/1000).strftime('%d.%m %H:%M')
-                    last = f"🕒 {t}\n📝 {v.get('action')}"
-                    break
-            bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, f"⏱ <b>Последняя тревога:</b>\n{last}", parse_mode='HTML')
-
-        elif call.data == "list_ops":
-            ops = db.reference('operators').get() or {}
-            text = "👤 <b>Операторы:</b>\n"
-            for k, v in ops.items(): text += f"• {v.get('name', '?')} (TG: {'✅' if v.get('tgChatId') else '❌'})\n"
-            bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, text if ops else "Пусто.", parse_mode='HTML')
-
-        elif call.data == "list_res":
-            res = db.reference('residents').get() or {}
-            banned = sum(1 for v in res.values() if v.get('banned'))
-            bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, f"👥 Жителей: <b>{len(res)}</b>\n⛔ Забанено: <b>{banned}</b>", parse_mode='HTML')
-
-        elif call.data == "duty_today":
-            today = datetime.now().strftime('%Y-%m-%d')
-            duty = db.reference(f'duty_schedule/{today}').get()
-            bot.answer_callback_query(call.id)
-            if duty: bot.send_message(call.message.chat.id, f"📅 Сегодня дежурит: <b>{duty.get('name')}</b>", parse_mode='HTML')
-            else: bot.send_message(call.message.chat.id, "📅 Сегодня дежурный не назначен.")
-
-        elif call.data == "sign_list":
-            docs = db.reference('signing_docs').get() or {}
-            text = "📋 <b>Документы на подписи:</b>\n"
-            cnt = 0
-            for k, v in docs.items():
-                if v.get('active'): cnt += 1; text += f"📄 {v.get('title')}\n"
-            bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, text if cnt else "Нет активных документов.", parse_mode='HTML')
-
-        elif call.data == "remind_signs":
-            bot.answer_callback_query(call.id, "Рассылка...")
-            bot.send_message(call.message.chat.id, "🔔 Напоминания о подписи отправлены всем операторам.")
-
-        elif call.data == "logs":
-            logs = db.reference('logs').order_by_key().limit_to_last(5).get() or {}
-            text = "📈 <b>Последние 5 действий:</b>\n"
-            for k, v in logs.items():
-                t = datetime.fromtimestamp(v.get('ts', 0)/1000).strftime('%H:%M')
-                text += f"🕒 [{t}] {v.get('action')}\n"
-            bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, text if logs else "Пусто.", parse_mode='HTML')
-
-        elif call.data == "pdf_report":
-            bot.answer_callback_query(call.id, "Генерация...")
-            bot.send_message(call.message.chat.id, "📄 PDF-отчет сформирован и отправлен в чат.")
-
-        elif call.data == "sos_list":
-            sos = db.reference('sos').get() or {}
-            text = "🆘 <b>Активные SOS:</b>\n\n"
-            for k, v in sos.items():
-                text += f"👤 {v.get('from', '?')}\n📍 <a href='https://yandex.ru/maps/?pt={v.get('lon')},{v.get('lat')}&z=12&l=map'>Карта</a>\n\n"
-            bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, text if sos else "SOS нет.", parse_mode='HTML', disable_web_page_preview=True)
-
-        elif call.data == "maint_mode":
-            curr = db.reference('settings/maintenance').get()
-            new_val = not curr if curr is not None else True
-            db.reference('settings/maintenance').set(new_val)
-            bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, f"🔧 Тех. работы: <b>{'ВКЛ' if new_val else 'ВЫКЛ'}</b>", parse_mode='HTML')
-
-        elif call.data == "test_push":
-            bot.answer_callback_query(call.id, "Отправка...")
-            bot.send_message(call.message.chat.id, "📡 Тестовый пуш отправлен жителям.")
-
-        elif call.data == "post_news":
-            bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, "📰 Напишите текст новости следующим сообщением.")
-
+        text = f"{alert_name}\n\n📍 <b>Регион:</b> {region_name}\n🕒 <b>Время:</b> {time.strftime('%H:%M')}\n📡 <b>Источник:</b> Пульт оператора"
+        bot.send_message(channel, text, parse_mode='HTML')
+        channel_status = f"✅ Отправлено в {channel}"
     except Exception as e:
-        print("Ошибка:", e)
-        bot.answer_callback_query(call.id, "Ошибка!")
+        print(f"Ошибка канала {channel}: {e}")
+        channel_status = f"⚠️ Ошибка отправки в канал {channel}"
+
+    # 4. Ответ пользователю
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          text=f"✅ <b>СИГНАЛ ОТПРАВЛЕН!</b>\n\n{alert_name}\n📍 {region_name}\n\n{channel_status}",
+                          parse_mode='HTML')
 
 # ==========================================
-# ЛОВИМ ТЕКСТ ДЛЯ НОВОСТЕЙ
-# ==========================================
-@bot.message_handler(func=lambda message: True)
-def catch_all(message):
-    if message.text and len(message.text) > 10:
-        try:
-            bot.send_message(MAIN_CHANNEL, f"📰 <b>НОВОСТЬ:</b>\n\n{message.text}", parse_mode='HTML')
-            bot.reply_to(message, "✅ Новость в канале!")
-        except: pass
-
-# ==========================================
-# СЛУШАТЕЛИ И ЗАПУСК
+# 2FA (КОДЫ ВХОДА)
 # ==========================================
 def on_2fa(event):
     if event.data:
         d = event.data
         if d.get('code') and d.get('tgChatId'):
-            bot.send_message(d['tgChatId'], f"🔐 Код: <code>{d['code']}</code>", parse_mode='HTML')
+            bot.send_message(d['tgChatId'], f"🔐 <b>Код входа:</b>\n\n<code>{d['code']}</code>", parse_mode='HTML')
         db.reference(event.path).delete()
 
+# ==========================================
+# ЗАПУСК
+# ==========================================
 def run():
     threading.Thread(target=lambda: db.reference('2fa_requests').listen(on_2fa), daemon=True).start()
-    print("✅ Бот работает")
+    print("✅ Бот запущен")
     bot.infinity_polling()
 
 @app.route('/')
