@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 from flask import Flask
 import telebot
+from telebot import types  # Подключаем кнопки
 import firebase_admin
 from firebase_admin import credentials, db
 
@@ -13,7 +14,6 @@ from firebase_admin import credentials, db
 # ==========================================
 app = Flask(__name__)
 
-# Все секретные данные берутся из переменных окружения Render
 TOKEN = os.environ.get('BOT_TOKEN')
 DATABASE_URL = os.environ.get('FIREBASE_URL')
 
@@ -37,32 +37,120 @@ except Exception as e:
 bot = telebot.TeleBot(TOKEN)
 
 # ==========================================
-# 2. КОМАНДЫ БОТА
+# 2. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (КЛАВИАТУРЫ)
 # ==========================================
-@bot.message_handler(commands=['start', 'mychat'])
-def send_welcome(message):
-    chat_id = message.chat.id
-    # Экранируем спецсимволы, чтобы Telegram не выдавал ошибку
-    name = message.from_user.first_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+def get_main_keyboard(chat_id):
+    """Создает клавиатуру, проверяя, является ли пользователь оператором"""
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
+    # Проверяем, есть ли chat_id в базе операторов
+    is_operator = False
+    try:
+        ops = db.reference('operators').get() or {}
+        for op in ops.values():
+            if str(op.get('tgChatId')) == str(chat_id):
+                is_operator = True
+                break
+    except: pass
+
+    if is_operator:
+        btn_status = types.KeyboardButton("📊 Статус системы")
+        btn_duty = types.KeyboardButton("📅 Моя смена")
+        btn_app = types.KeyboardButton("📱 Открыть Пульт")
+        btn_id = types.KeyboardButton("🆔 Мой ID")
+        markup.add(btn_status, btn_duty)
+        markup.add(btn_app, btn_id)
+    else:
+        # Если человек просто зашел, даем ему только кнопку получить ID
+        markup.add(types.KeyboardButton("🆔 Получить chat_id"))
+
+    return markup
+
+# ==========================================
+# 3. ОБРАБОТЧИКИ КОМАНД И КНОПОК
+# ==========================================
+@bot.message_handler(commands=['start'])
+def cmd_start(message):
+    name = message.from_user.first_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     text = (
-        f"👋 Привет, {name}!\n\n"
-        f"Ваш chat_id:\n"
-        f"<code>{chat_id}</code>\n\n"
-        f"Скопируйте это число и вставьте в приложении «Пульт оператора» → Профиль → 🔐 Привязать Telegram."
+        f"👋 Привет, <b>{name}</b>!\n\n"
+        f"Добро пожаловать в бот системы оповещения.\n"
+        f"Используй кнопки ниже для навигации."
     )
-    bot.reply_to(message, text, parse_mode='HTML')
+    bot.send_message(message.chat.id, text, parse_mode='HTML', reply_markup=get_main_keyboard(message.chat.id))
 
-@bot.message_handler(commands=['help'])
-def send_help(message):
-    bot.reply_to(message, "Доступные команды:\n/start — получить chat_id\n/mychat — узнать свой ID\n/help — эта справка")
+@bot.message_handler(func=lambda message: message.text in ["🆔 Получить chat_id", "🆔 Мой ID", "/mychat"])
+def cmd_get_id(message):
+    chat_id = message.chat.id
+    text = (
+        f"🆔 <b>Ваш Telegram ID:</b>\n\n"
+        f"<code>{chat_id}</code>\n\n"
+        f"Скопируйте это число (нажмите на него) и вставьте в приложении "
+        f"«Пульт оператора» → Профиль → 🔐 Привязать Telegram (2FA)."
+    )
+    bot.send_message(chat_id, text, parse_mode='HTML', reply_markup=get_main_keyboard(chat_id))
 
+@bot.message_handler(func=lambda message: message.text == "📊 Статус системы")
+def cmd_status(message):
+    try:
+        # Считаем данные из базы
+        residents = db.reference('residents').get() or {}
+        regions = db.reference('regions').get() or {}
+        
+        total_residents = len(residents)
+        active_alerts = 0
+        for r in regions.values():
+            sig = r.get('signal')
+            if sig and 'clear' not in sig:
+                active_alerts += 1
+
+        text = (
+            f"📊 <b>Статус системы</b>\n\n"
+            f"👥 Жителей в базе: <b>{total_residents}</b>\n"
+            f"🚨 Активных тревог: <b>{active_alerts}</b>\n"
+            f"🟢 Система работает в штатном режиме."
+        )
+        bot.reply_to(message, text, parse_mode='HTML')
+    except Exception as e:
+        bot.reply_to(message, "❌ Ошибка при получении статуса.")
+
+@bot.message_handler(func=lambda message: message.text == "📅 Моя смена")
+def cmd_duty(message):
+    today = datetime.now().strftime('%Y-%m-%d')
+    try:
+        duty = db.reference(f'duty_schedule/{today}').get()
+        if duty and duty.get('email'):
+            name = duty.get('name', 'Неизвестно')
+            email = duty.get('email', '')
+            # Проверяем, совпадает ли с текущим оператором (по chat_id)
+            ops = db.reference('operators').get() or {}
+            is_me = False
+            for op in ops.values():
+                if str(op.get('tgChatId')) == str(message.chat.id) and op.get('email') == email:
+                    is_me = True
+                    break
+            
+            if is_me:
+                bot.reply_to(message, f"📅 <b>Ваша смена сегодня!</b>\n\nДежурный: {name}\nДата: {today}", parse_mode='HTML')
+            else:
+                bot.reply_to(message, f"📅 <b>Сегодня на смене:</b>\n{name}\n\nВы не дежурите сегодня.", parse_mode='HTML')
+        else:
+            bot.reply_to(message, "📅 На сегодня дежурный не назначен.")
+    except Exception as e:
+        bot.reply_to(message, "❌ Ошибка при получении данных о смене.")
+
+@bot.message_handler(func=lambda message: message.text == "📱 Открыть Пульт")
+def cmd_app(message):
+    bot.reply_to(message, "📱 Откройте приложение <b>«Пульт оператора»</b> на своем телефоне для подачи сигналов и управления.", parse_mode='HTML')
+
+# Обработка остального текста
 @bot.message_handler(func=lambda message: True)
 def echo_all(message):
-    bot.reply_to(message, "Нажмите /start, чтобы получить ваш ID для привязки.")
+    bot.reply_to(message, "Пожалуйста, используйте кнопки внизу экрана для управления ботом. 👇", reply_markup=get_main_keyboard(message.chat.id))
+
 
 # ==========================================
-# 3. СЛУШАТЕЛИ FIREBASE (2FA и ДОКУМЕНТЫ)
+# 4. СЛУШАТЕЛИ FIREBASE (АВТО-УВЕДОМЛЕНИЯ)
 # ==========================================
 def on_2fa_request(event):
     if event.data is None: return
@@ -71,7 +159,15 @@ def on_2fa_request(event):
         code = data.get('code')
         chat_id = data.get('tgChatId')
         if chat_id and code:
-            bot.send_message(chat_id, f"🔐 <b>Код входа в пульт:</b>\n\n<code>{code}</code>\n\nДействителен 5 минут.", parse_mode='HTML')
+            markup = types.InlineKeyboardMarkup()
+            # Добавляем кнопку "Скопировать" (просто визуальная подсказка)
+            markup.add(types.InlineKeyboardButton("✅ Я ввел код", callback_data="code_entered"))
+            
+            bot.send_message(chat_id, 
+                f"🔐 <b>Код входа в пульт:</b>\n\n"
+                f"<code>{code}</code>\n\n"
+                f"Действителен 5 минут. Никому не сообщайте его.", 
+                parse_mode='HTML', reply_markup=markup)
         db.reference(event.path).delete()
     except Exception as e:
         print(f"Ошибка 2FA: {e}")
@@ -84,7 +180,6 @@ def on_signing_doc(event):
         targets = data.get('targets', [])
         created_at = data.get('createdAt', 0)
         
-        # Защита от старых документов при перезапуске
         if time.time() * 1000 - created_at > 60000:
             return
             
@@ -94,12 +189,29 @@ def on_signing_doc(event):
             tg = op.get('tgChatId')
             if not tg: continue
             if '*' in targets or email in targets:
-                bot.send_message(tg, f"📋 <b>Новый документ на подпись:</b>\n{title}\n\nЗайдите в приложение → ✍️ Подписание.", parse_mode='HTML')
+                # Инлайн кнопка для документа
+                markup = types.InlineKeyboardMarkup()
+                markup.add(types.InlineKeyboardButton("📄 Ознакомиться и подписать", callback_data=f"read_doc_{title}"))
+                
+                bot.send_message(tg, 
+                    f"📋 <b>Новый документ на подпись:</b>\n\n«{title}»\n\n"
+                    f"Пожалуйста, зайдите в приложение для ознакомления и подписания.", 
+                    parse_mode='HTML', reply_markup=markup)
     except Exception as e:
         print(f"Ошибка on_signing_doc: {e}")
 
+# Обработка нажатий на инлайн-кнопки
+@bot.callback_query_handler(func=lambda call: True)
+def callback_inline(call):
+    if call.data == "code_entered":
+        bot.answer_callback_query(call.id, "Отлично! Введите код в приложении.")
+        bot.delete_message(call.message.chat.id, call.message.message_id) # Удаляем сообщение с кодом для безопасности
+    elif call.data.startswith("read_doc_"):
+        bot.answer_callback_query(call.id, "Откройте приложение «Пульт оператора» → ✍️ Подписание")
+        bot.send_message(call.message.chat.id, "Для просмотра документа перейдите в приложение в раздел «✍️ Подписание».")
+
 # ==========================================
-# 4. ДЕЖУРСТВА
+# 5. ДЕЖУРСТВА (ФОНОВАЯ ЗАДАЧА)
 # ==========================================
 def check_duty():
     while True:
@@ -112,7 +224,6 @@ def check_duty():
                 ops = db.reference('operators').get() or {}
                 for op in ops.values():
                     if op.get('email', '').lower() == email and op.get('tgChatId'):
-                        # Напоминаем с 8 до 9 утра
                         if 8 <= datetime.now().hour <= 9:
                             bot.send_message(op['tgChatId'], f"📅 <b>Напоминание:</b>\n{name}, сегодня ваша смена оператора!", parse_mode='HTML')
                             time.sleep(3600)
@@ -121,7 +232,7 @@ def check_duty():
         time.sleep(3600)
 
 # ==========================================
-# 5. ЗАПУСК
+# 6. ЗАПУСК
 # ==========================================
 def start_firebase_listeners():
     try:
@@ -145,7 +256,6 @@ def health():
     return "Bot is running successfully!"
 
 if __name__ == '__main__':
-    # Запуск потоков
     threading.Thread(target=run_bot, daemon=True).start()
     threading.Thread(target=start_firebase_listeners, daemon=True).start()
     threading.Thread(target=check_duty, daemon=True).start()
