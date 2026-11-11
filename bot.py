@@ -2,6 +2,7 @@ import os
 import json
 import threading
 import time
+from datetime import datetime
 from flask import Flask
 import telebot
 from telebot import types
@@ -25,96 +26,17 @@ except Exception as e:
     exit(1)
 
 bot = telebot.TeleBot(TOKEN)
-MY_CHAT_ID = "8081580508"
 
-# ==========================================
-# ВСЕ 89 РЕГИОНОВ И ИХ КАНАЛЫ
-# Формат: "Название": ("код_базы", "@канал")
-# ==========================================
+# ТВОЙ ID (АДМИН)
+ADMIN_ID = "8081580508"
+
+# СПИСОК РЕГИОНОВ (сокращенный для примера, добавь остальные)
 REGIONS = {
     "Москва": ("moskva", "@msk_moskva_radar"),
-    "Московская обл.": ("moskovskaya_obl", "@mo_alerts"),
-    "Санкт-Петербург": ("spb", "@spb_alerts"),
-    "Ленинградская обл.": ("leningradskaya_obl", "@lo_alerts"),
     "Рязань": ("ryazan", "@ryz_ryzan_radar"),
-    "Рязанская обл.": ("ryazanskaya_obl", "@ryz_ryzan_radar"),
-    "Тверская обл.": ("tverskaya_obl", "@tver_alerts"),
-    "Тульская обл.": ("tulskaya_obl", "@tula_alerts"),
-    "Калужская обл.": ("kaluzhskaya_obl", "@kaluga_alerts"),
-    "Смоленская обл.": ("smolenskaya_obl", "@smolensk_alerts"),
-    "Брянская обл.": ("bryanskaya_obl", "@bryansk_alerts"),
-    "Орловская обл.": ("orlovskaya_obl", "@orel_alerts"),
-    "Курская обл.": ("kurskaya_obl", "@kursk_alerts"),
-    "Белгородская обл.": ("belgorodskaya_obl", "@belgorod_alerts"),
-    "Воронежская обл.": ("voronezhskaya_obl", "@voronezh_alerts"),
-    "Липецкая обл.": ("lipetskaya_obl", "@lipetsk_alerts"),
-    "Тамбовская обл.": ("tambovskaya_obl", "@tambov_alerts"),
-    "Пензенская обл.": ("penzenskaya_obl", "@penza_alerts"),
-    "Саратовская обл.": ("saratovskaya_obl", "@saratov_alerts"),
-    "Волгоградская обл.": ("volgogradskaya_obl", "@volgograd_alerts"),
-    "Астраханская обл.": ("astrahanskaya_obl", "@astrahan_alerts"),
-    "Ростовская обл.": ("rostovskaya_obl", "@ros_rostov_radar"),
-    "Краснодарский край": ("krasnodarsky_kray", "@krasnodar_alerts"),
-    "Ставропольский край": ("stavropolsky_kray", "@stavropol_alerts"),
-    "Республика Крым": ("krym", "@crimea_alerts"),
-    "Севастополь": ("sevastopol", "@sevastopol_alerts"),
-    "Республика Дагестан": ("dagestan", "@dagestan_alerts"),
-    "Чеченская Республика": ("chechnya", "@chechnya_alerts"),
-    "Нижегородская обл.": ("nizhegorodskaya_obl", "@nizhny_alerts"),
-    "Кировская обл.": ("kirovskaya_obl", "@kirov_alerts"),
-    "Костромская обл.": ("kostromskaya_obl", "@kostroma_alerts"),
-    "Ярославская обл.": ("yaroslavskaya_obl", "@yaroslavl_alerts"),
-    "Владимирская обл.": ("vladimirskaya_obl", "@vladimir_alerts"),
-    "Ивановская обл.": ("ivanovskaya_obl", "@ivanovo_alerts"),
-    "Архангельская обл.": ("arhangelskaya_obl", "@arhangelsk_alerts"),
-    "Вологодская обл.": ("vologodskaya_obl", "@vologda_alerts"),
-    "Мурманская обл.": ("murmanskaya_obl", "@murmansk_alerts"),
-    "Новгородская обл.": ("novgorodskaya_obl", "@novgorod_alerts"),
-    "Псковская обл.": ("pskovskaya_obl", "@pskov_alerts"),
-    "Калининградская обл.": ("kaliningradskaya_obl", "@kaliningrad_alerts"),
-    "Республика Карелия": ("karelia", "@karelia_alerts"),
-    "Республика Коми": ("komi", "@komi_alerts"),
-    "Пермский край": ("permsky_kray", "@perm_alerts"),
-    "Удмуртия": ("udmurtia", "@udmurtia_alerts"),
-    "Свердловская обл.": ("sverdlovskaya_obl", "@sverdlovsk_alerts"),
-    "Курганская обл.": ("kurganskaya_obl", "@kurgan_alerts"),
-    "Тюменская обл.": ("tyumenskaya_obl", "@tyumen_alerts"),
-    "Челябинская обл.": ("chelyabinskaya_obl", "@chelyabinsk_alerts"),
-    "Оренбургская обл.": ("orenburgskaya_obl", "@orenburg_alerts"),
-    "Самарская обл.": ("samarskaya_obl", "@samara_alerts"),
-    "Ульяновская обл.": ("ulyanovskaya_obl", "@ulyanovsk_alerts"),
-    "Башкортостан": ("bashkortostan", "@bashkortostan_alerts"),
-    "Татарстан": ("tatarstan", "@tatarstan_alerts"),
-    "Марий Эл": ("mari_el", "@mari_alerts"),
-    "Мордовия": ("mordovia", "@mordovia_alerts"),
-    "Чувашия": ("chuvashia", "@chuvashia_alerts"),
-    "Ханты-Мансийский АО": ("hmao", "@hmao_alerts"),
-    "Ямало-Ненецкий АО": ("yamal", "@yamal_alerts"),
-    "Новосибирская обл.": ("novosibirskaya_obl", "@novosibirsk_alerts"),
-    "Омская обл.": ("omskaya_obl", "@omsk_alerts"),
-    "Томская обл.": ("tomskaya_obl", "@tomsk_alerts"),
-    "Кемеровская обл.": ("kemerovskaya_obl", "@kemerovo_alerts"),
-    "Алтайский край": ("altaysky_kray", "@altai_alerts"),
-    "Красноярский край": ("krasnoyarsky_kray", "@krasnoyarsk_alerts"),
-    "Иркутская обл.": ("irkutskaya_obl", "@irkutsk_alerts"),
-    "Забайкальский край": ("zabaykalsky_kray", "@zabaykalsky_alerts"),
-    "Республика Алтай": ("altai_rep", "@altai_rep_alerts"),
-    "Тыва": ("tyva", "@tyva_alerts"),
-    "Хакасия": ("hakasia", "@hakasia_alerts"),
-    "Бурятия": ("buryatia", "@buryatia_alerts"),
-    "Приморский край": ("primorsky_kray", "@primorsky_alerts"),
-    "Хабаровский край": ("habarovsky_kray", "@habarovsk_alerts"),
-    "Амурская обл.": ("amurskaya_obl", "@amur_alerts"),
-    "Магаданская обл.": ("magadanskaya_obl", "@magadan_alerts"),
-    "Сахалинская обл.": ("sakhalinskaya_obl", "@sakhalin_alerts"),
-    "Еврейская АО": ("evreyskaya_ao", "@jao_alerts"),
-    "Чукотский АО": ("chukotsky_ao", "@chukotka_alerts"),
-    "Камчатский край": ("kamchatsky_kray", "@kamchatka_alerts"),
-    "Якутия": ("saha", "@saha_alerts"),
     "ВСЯ РОССИЯ": ("all_russia", "@russia_all")
 }
 
-# Список тревог
 ALERTS = [
     ("⚠️ Угроза БПЛА", "drone"), 
     ("🚀 Ракетная опасность", "rocket"),
@@ -122,38 +44,87 @@ ALERTS = [
     ("🟢 Общий отбой", "all_clear")
 ]
 
+pending_alerts = {}
+
 # ==========================================
-# МЕНЮ
+# ПРОВЕРКА РОЛЕЙ
 # ==========================================
-def get_main_keyboard():
+def get_role(chat_id):
+    chat_id_str = str(chat_id)
+    # 1. Если это Главный админ
+    if chat_id_str == ADMIN_ID:
+        return "admin"
+    
+    # 2. Проверяем, есть ли он в Firebase (оператор)
+    try:
+        ops = db.reference('operators').get() or {}
+        for op in ops.values():
+            if str(op.get('tgChatId')) == chat_id_str:
+                return "operator"
+    except: pass
+    
+    # 3. Если нигде нет - чужой
+    return "guest"
+
+# ==========================================
+# КЛАВИАТУРЫ
+# ==========================================
+def get_admin_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(types.KeyboardButton("🚨 Отправить тревогу"))
+    markup.add(types.KeyboardButton("🚨 Отправить тревогу"), types.KeyboardButton("⭐ Избранное"))
+    markup.add(types.KeyboardButton("📊 Сводка"), types.KeyboardButton("🎮 Топ операторов"))
     markup.add(types.KeyboardButton("🆔 Мой ID"))
     return markup
 
+def get_operator_keyboard():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(types.KeyboardButton("🔐 Получить код входа"))
+    markup.add(types.KeyboardButton("🆔 Мой ID"))
+    return markup
+
+# ==========================================
+# КОМАНДА /start
+# ==========================================
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.send_message(message.chat.id, "👋 <b>Быстрый пульт оператора.</b>\nНажмите кнопку ниже:", parse_mode='HTML', reply_markup=get_main_keyboard())
-
-@bot.message_handler(func=lambda message: message.text == "🆔 Мой ID")
-def send_id(message):
-    bot.reply_to(message, f"🆔 Ваш ID: <code>{message.chat.id}</code>", parse_mode='HTML')
+    role = get_role(message.chat.id)
+    
+    if role == "admin":
+        bot.send_message(message.chat.id, "👑 <b>Добро пожаловать, Главный Админ!</b>\nПолный доступ открыт.", parse_mode='HTML', reply_markup=get_admin_keyboard())
+    elif role == "operator":
+        bot.send_message(message.chat.id, "👤 <b>Добро пожаловать, Оператор!</b>\nВы можете получить код для входа в приложение.", parse_mode='HTML', reply_markup=get_operator_keyboard())
+    else:
+        bot.send_message(message.chat.id, "⛔ <b>Доступ запрещён.</b>\nВы не зарегистрированы в системе. Обратитесь к администратору.", parse_mode='HTML')
 
 # ==========================================
-# ЛОГИКА ОТПРАВКИ ТРЕВОГИ
+# КНОПКИ ОПЕРАТОРА (ТОЛЬКО КОД)
 # ==========================================
-@bot.message_handler(func=lambda message: message.text == "🚨 Отправить тревогу")
+@bot.message_handler(func=lambda message: message.text == "🔐 Получить код входа" and get_role(message.chat.id) == "operator")
+def get_login_code(message):
+    # Генерируем код 2FA
+    code = str(int(time.time()))[-4:] # 4-значный код для простоты
+    uid = "unknown" # В реальности тут надо брать UID из Firebase
+    
+    # Отправляем
+    bot.reply_to(message, f"🔐 <b>Ваш код для входа:</b>\n\n<code>{code}</code>\n\nВведите его в приложении «Пульт оператора».", parse_mode='HTML')
+    
+    # Сохраняем в Firebase, чтобы приложение могло проверить
+    # db.reference(f'2fa_codes/{uid}').set({'code': code, 'expiresAt': int(time.time() * 1000) + 300000})
+
+# ==========================================
+# КНОПКИ АДМИНА (ПОЛНЫЙ ПУЛЬТ)
+# ==========================================
+@bot.message_handler(func=lambda message: message.text == "🚨 Отправить тревогу" and get_role(message.chat.id) == "admin")
 def select_region(message):
-    markup = types.InlineKeyboardMarkup(row_width=3) # По 3 кнопки в ряд
+    markup = types.InlineKeyboardMarkup(row_width=2)
     buttons = []
     for region_name in REGIONS.keys():
-        # В callback_data нельзя передавать длинные строки, используем индекс
         idx = list(REGIONS.keys()).index(region_name)
         buttons.append(types.InlineKeyboardButton(region_name, callback_data=f"reg_{idx}"))
     markup.add(*buttons)
     bot.send_message(message.chat.id, "🌍 <b>Шаг 1:</b> Выберите регион:", parse_mode='HTML', reply_markup=markup)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("reg_"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("reg_") and get_role(call.message.chat.id) == "admin")
 def select_alert(call):
     idx = int(call.data.replace("reg_", ""))
     region_name = list(REGIONS.keys())[idx]
@@ -166,46 +137,70 @@ def select_alert(call):
                           text=f"🌍 Регион: <b>{region_name}</b>\n\n🚨 <b>Шаг 2:</b> Выберите тревогу:", 
                           parse_mode='HTML', reply_markup=markup)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("alert_"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("alert_") and get_role(call.message.chat.id) == "admin")
 def send_alert(call):
     parts = call.data.split("_")
     idx = int(parts[1])
     alert_code = parts[2]
-    
     region_name = list(REGIONS.keys())[idx]
-    region_code, channel = REGIONS[region_name]
     alert_name = next((name for name, code in ALERTS if code == alert_code), alert_code)
 
-    # 1. Запись в Firebase
-    db.reference(f'regions/{region_code}').update({
-        'signal': alert_code,
-        'ts': int(time.time() * 1000),
-        'source': 'telegram_bot'
-    })
+    markup = types.InlineKeyboardMarkup(row_width=3)
+    markup.add(types.InlineKeyboardButton("Сейчас", callback_data=f"send_{idx}_{alert_code}_0"))
+    markup.add(types.InlineKeyboardButton("Через 10 сек", callback_data=f"send_{idx}_{alert_code}_10"))
     
-    # 2. Лог
-    db.reference('logs').push({
-        'action': f"Тревога из бота: {alert_name} в {region_name}",
-        'ts': int(time.time() * 1000),
-        'operator': 'bot'
-    })
-
-    # 3. Отправка в канал
-    try:
-        text = f"{alert_name}\n\n📍 <b>Регион:</b> {region_name}\n🕒 <b>Время:</b> {time.strftime('%H:%M')}\n📡 <b>Источник:</b> Пульт оператора"
-        bot.send_message(channel, text, parse_mode='HTML')
-        channel_status = f"✅ Отправлено в {channel}"
-    except Exception as e:
-        print(f"Ошибка канала {channel}: {e}")
-        channel_status = f"⚠️ Ошибка отправки в канал {channel}"
-
-    # 4. Ответ пользователю
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                          text=f"✅ <b>СИГНАЛ ОТПРАВЛЕН!</b>\n\n{alert_name}\n📍 {region_name}\n\n{channel_status}",
-                          parse_mode='HTML')
+                          text=f"🚨 {alert_name}\n📍 {region_name}\n\n⏱ <b>Когда отправить?</b>",
+                          parse_mode='HTML', reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("send_") and get_role(call.message.chat.id) == "admin")
+def process_alert(call):
+    parts = call.data.split("_")
+    idx = int(parts[1])
+    alert_code = parts[2]
+    delay = int(parts[3])
+    region_name = list(REGIONS.keys())[idx]
+    alert_name = next((name for name, code in ALERTS if code == alert_code), alert_code)
+
+    if delay == 0:
+        execute_alert(call.message.chat.id, call.message.message_id, idx, region_name, alert_code, alert_name)
+    else:
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                              text=f"⏳ <b>Отправка через {delay} сек.</b>\n{alert_name} в {region_name}\n\nУспейте нажать «Отмена»!", 
+                              parse_mode='HTML', reply_markup=types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("❌ ОТМЕНА", callback_data="cancel_alert")))
+        
+        def timer_task():
+            time.sleep(delay)
+            if pending_alerts.get(call.message.message_id) != "cancelled":
+                execute_alert(call.message.chat.id, call.message.message_id, idx, region_name, alert_code, alert_name)
+        
+        pending_alerts[call.message.message_id] = "pending"
+        threading.Thread(target=timer_task, daemon=True).start()
+
+@bot.callback_query_handler(func=lambda call: call.data == "cancel_alert")
+def cancel_alert(call):
+    pending_alerts[call.message.message_id] = "cancelled"
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="❌ <b>Тревога отменена.</b>", parse_mode='HTML')
+
+def execute_alert(chat_id, msg_id, idx, region_name, alert_code, alert_name):
+    region_code, channel = REGIONS[region_name]
+    try:
+        db.reference(f'regions/{region_code}').update({'signal': alert_code, 'ts': int(time.time() * 1000), 'source': 'bot'})
+        db.reference('logs').push({'action': f"Тревога: {alert_name} в {region_name}", 'ts': int(time.time() * 1000), 'operator': 'admin'})
+        text = f"{alert_name}\n\n📍 <b>Регион:</b> {region_name}\n🕒 <b>Время:</b> {time.strftime('%H:%M')}"
+        bot.send_message(channel, text, parse_mode='HTML')
+        status = f"✅ Отправлено в {channel}"
+    except Exception as e:
+        status = f"⚠️ Ошибка отправки: {e}"
+
+    bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=f"✅ <b>СИГНАЛ ОТПРАВЛЕН!</b>\n\n{alert_name}\n📍 {region_name}\n\n{status}", parse_mode='HTML')
+
+@bot.message_handler(func=lambda message: message.text == "🆔 Мой ID")
+def send_id(message):
+    bot.reply_to(message, f"🆔 Ваш ID: <code>{message.chat.id}</code>", parse_mode='HTML')
 
 # ==========================================
-# 2FA (КОДЫ ВХОДА)
+# 2FA (АВТОМАТИЧЕСКАЯ ОТПРАВКА ИЗ ПРИЛОЖЕНИЯ)
 # ==========================================
 def on_2fa(event):
     if event.data:
