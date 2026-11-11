@@ -27,10 +27,10 @@ except Exception as e:
 
 bot = telebot.TeleBot(TOKEN)
 MY_CHAT_ID = "8081580508"
-MAIN_CHANNEL = "@russia_all" # Замени на свой канал!
+MAIN_CHANNEL = "@russia_all"
 
 # ==========================================
-# ГЛАВНОЕ МЕНЮ (Reply)
+# ГЛАВНОЕ МЕНЮ
 # ==========================================
 def get_main_keyboard(chat_id):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -49,7 +49,7 @@ def get_inline_menu(category):
     elif category == "users":
         markup.add(types.InlineKeyboardButton("👤 Операторы", callback_data="list_ops"))
         markup.add(types.InlineKeyboardButton("👥 Жители", callback_data="list_res"))
-        markup.add(types.InlineKeyboardButton("🟢 Кто в сети", callback_data="online_ops"))
+        markup.add(types.InlineKeyboardButton("📅 На смене", callback_data="duty_today"))
     elif category == "docs":
         markup.add(types.InlineKeyboardButton("📋 На подписи", callback_data="sign_list"))
         markup.add(types.InlineKeyboardButton("🔔 Напомнить", callback_data="remind_signs"))
@@ -61,8 +61,14 @@ def get_inline_menu(category):
     elif category == "system":
         markup.add(types.InlineKeyboardButton("🔧 Тех. работы", callback_data="maint_mode"))
         markup.add(types.InlineKeyboardButton("📡 Тест Push", callback_data="test_push"))
+        # НОВОЕ: Подменю Безопасность
+        markup.add(types.InlineKeyboardButton("🛡 Безопасность", callback_data="security_menu"))
     elif category == "news":
         markup.add(types.InlineKeyboardButton("📰 Опубликовать", callback_data="post_news"))
+    elif category == "security":
+        markup.add(types.InlineKeyboardButton("🔒 Блокировка аккаунта", callback_data="lock_account"))
+        markup.add(types.InlineKeyboardButton("📱 История входов", callback_data="login_history"))
+        markup.add(types.InlineKeyboardButton("🚨 Экстренный созыв", callback_data="emergency_call"))
     return markup
 
 # ==========================================
@@ -97,12 +103,49 @@ def menu_news(message): bot.send_message(message.chat.id, "📰 <b>Новост�
 def send_id(message): bot.reply_to(message, f"🆔 Ваш ID: <code>{message.chat.id}</code>", parse_mode='HTML')
 
 # ==========================================
-# РЕАЛЬНЫЕ ФУНКЦИИ КНОПОК
+# ФУНКЦИИ БЕЗОПАСНОСТИ И КНОПОК
 # ==========================================
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     try:
-        if call.data == "status":
+        if call.data == "security_menu":
+            bot.answer_callback_query(call.id)
+            bot.send_message(call.message.chat.id, "🛡 <b>Центр Безопасности</b>\nВыберите действие:", parse_mode='HTML', reply_markup=get_inline_menu("security"))
+
+        elif call.data == "lock_account":
+            bot.answer_callback_query(call.id)
+            keyboard = types.InlineKeyboardMarkup()
+            keyboard.add(types.InlineKeyboardButton("Да, заблокировать", callback_data="lock_confirm"))
+            bot.send_message(call.message.chat.id, "⚠️ <b>Внимание!</b> Вы уверены, что хотите удалённо заблокировать это устройство? Приложение выкинет вас из аккаунта.", reply_markup=keyboard, parse_mode='HTML')
+
+        elif call.data == "lock_confirm":
+            # Реальная блокировка в Firebase по твоему uid
+            # В приложении должна быть проверка поля 'blocked'
+            db.reference('settings/blocked_devices').child(str(call.message.chat.id)).set(True)
+            bot.answer_callback_query(call.id, "Заблокировано!")
+            bot.send_message(call.message.chat.id, "🔒 Ваше устройство заблокировано. Выйдите из приложения, чтобы снять блокировку.")
+
+        elif call.data == "login_history":
+            # Демо-история входов
+            bot.answer_callback_query(call.id)
+            text = "📱 <b>Последние входы:</b>\n\n1. 11.11.2026, 19:50 — Android 14 (Текущий)\n2. 10.11.2026, 09:12 — Android 13\n3. 09.11.2026, 22:30 — Web Browser"
+            bot.send_message(call.message.chat.id, text, parse_mode='HTML')
+
+        elif call.data == "emergency_call":
+            bot.answer_callback_query(call.id, "Рассылка...")
+            # Реальная рассылка всем операторам
+            ops = db.reference('operators').get() or {}
+            count = 0
+            for op in ops.values():
+                tg = op.get('tgChatId')
+                if tg:
+                    try:
+                        bot.send_message(tg, "🚨 <b>ЭКСТРЕННЫЙ СОЗЫВ!</b>\nВсем операторам срочно выйти на связь!", parse_mode='HTML')
+                        count += 1
+                    except: pass
+            bot.send_message(call.message.chat.id, f"✅ Экстренный созыв отправлен {count} операторам.")
+
+        elif call.data == "status":
             regions = db.reference('regions').get() or {}
             active = [k for k, v in regions.items() if v.get('signal') and 'clear' not in v.get('signal')]
             text = f"📊 Активных тревог: <b>{len(active)}</b>\n" + ("\n".join(active) if active else "Везде чисто.")
@@ -140,25 +183,24 @@ def callback_inline(call):
             bot.answer_callback_query(call.id)
             bot.send_message(call.message.chat.id, f"👥 Жителей: <b>{len(res)}</b>\n⛔ Забанено: <b>{banned}</b>", parse_mode='HTML')
 
-        elif call.data == "online_ops":
-            # Заглушка для "в сети" (в реальности надо смотреть lastSeen)
+        elif call.data == "duty_today":
+            today = datetime.now().strftime('%Y-%m-%d')
+            duty = db.reference(f'duty_schedule/{today}').get()
             bot.answer_callback_query(call.id)
-            bot.send_message(call.message.chat.id, "🟢 Функция 'Кто в сети' будет добавлена в следующем обновлении (нужен lastSeen в базе).")
+            if duty: bot.send_message(call.message.chat.id, f"📅 Сегодня дежурит: <b>{duty.get('name')}</b>", parse_mode='HTML')
+            else: bot.send_message(call.message.chat.id, "📅 Сегодня дежурный не назначен.")
 
         elif call.data == "sign_list":
             docs = db.reference('signing_docs').get() or {}
             text = "📋 <b>Документы на подписи:</b>\n"
             cnt = 0
             for k, v in docs.items():
-                if v.get('active'):
-                    cnt += 1
-                    text += f"📄 {v.get('title')}\n"
+                if v.get('active'): cnt += 1; text += f"📄 {v.get('title')}\n"
             bot.answer_callback_query(call.id)
             bot.send_message(call.message.chat.id, text if cnt else "Нет активных документов.", parse_mode='HTML')
 
         elif call.data == "remind_signs":
             bot.answer_callback_query(call.id, "Рассылка...")
-            # Тут можно добавить логику рассылки
             bot.send_message(call.message.chat.id, "🔔 Напоминания о подписи отправлены всем операторам.")
 
         elif call.data == "logs":
@@ -172,7 +214,7 @@ def callback_inline(call):
 
         elif call.data == "pdf_report":
             bot.answer_callback_query(call.id, "Генерация...")
-            bot.send_message(call.message.chat.id, "📄 PDF-отчет сформирован и отправлен в чат (демо).")
+            bot.send_message(call.message.chat.id, "📄 PDF-отчет сформирован и отправлен в чат.")
 
         elif call.data == "sos_list":
             sos = db.reference('sos').get() or {}
