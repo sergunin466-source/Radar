@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from flask import Flask
 import telebot
-from telebot import types  # Подключаем кнопки
+from telebot import types
 import firebase_admin
 from firebase_admin import credentials, db
 
@@ -14,6 +14,7 @@ from firebase_admin import credentials, db
 # ==========================================
 app = Flask(__name__)
 
+# Все секретные данные берутся из переменных окружения Render
 TOKEN = os.environ.get('BOT_TOKEN')
 DATABASE_URL = os.environ.get('FIREBASE_URL')
 
@@ -37,20 +38,28 @@ except Exception as e:
 bot = telebot.TeleBot(TOKEN)
 
 # ==========================================
-# 2. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (КЛАВИАТУРЫ)
+# 2. КЛАВИАТУРЫ
 # ==========================================
 def get_main_keyboard(chat_id):
-    """Создает клавиатуру, проверяя, является ли пользователь оператором"""
+    """Создает клавиатуру, проверяя, является ли пользователь оператором ИЛИ админом"""
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    # Проверяем, есть ли chat_id в базе операторов
     is_operator = False
     try:
+        # 1. Ищем в операторах
         ops = db.reference('operators').get() or {}
         for op in ops.values():
             if str(op.get('tgChatId')) == str(chat_id):
                 is_operator = True
                 break
+                
+        # 2. Если не нашли, ищем в админах
+        if not is_operator:
+            admins = db.reference('admins').get() or {}
+            for adm in admins.values():
+                if str(adm.get('tgChatId')) == str(chat_id):
+                    is_operator = True
+                    break
     except: pass
 
     if is_operator:
@@ -93,7 +102,6 @@ def cmd_get_id(message):
 @bot.message_handler(func=lambda message: message.text == "📊 Статус системы")
 def cmd_status(message):
     try:
-        # Считаем данные из базы
         residents = db.reference('residents').get() or {}
         regions = db.reference('regions').get() or {}
         
@@ -122,7 +130,7 @@ def cmd_duty(message):
         if duty and duty.get('email'):
             name = duty.get('name', 'Неизвестно')
             email = duty.get('email', '')
-            # Проверяем, совпадает ли с текущим оператором (по chat_id)
+            
             ops = db.reference('operators').get() or {}
             is_me = False
             for op in ops.values():
@@ -141,13 +149,11 @@ def cmd_duty(message):
 
 @bot.message_handler(func=lambda message: message.text == "📱 Открыть Пульт")
 def cmd_app(message):
-    bot.reply_to(message, "📱 Откройте приложение <b>«Пульт оператора»</b> на своем телефоне для подачи сигналов и управления.", parse_mode='HTML')
+    bot.reply_to(message, "📱 Откройте приложение <b>«Пульт оператора»</b> на телефоне для подачи сигналов.", parse_mode='HTML')
 
-# Обработка остального текста
 @bot.message_handler(func=lambda message: True)
 def echo_all(message):
-    bot.reply_to(message, "Пожалуйста, используйте кнопки внизу экрана для управления ботом. 👇", reply_markup=get_main_keyboard(message.chat.id))
-
+    bot.reply_to(message, "Пожалуйста, используйте кнопки внизу экрана. 👇", reply_markup=get_main_keyboard(message.chat.id))
 
 # ==========================================
 # 4. СЛУШАТЕЛИ FIREBASE (АВТО-УВЕДОМЛЕНИЯ)
@@ -160,7 +166,6 @@ def on_2fa_request(event):
         chat_id = data.get('tgChatId')
         if chat_id and code:
             markup = types.InlineKeyboardMarkup()
-            # Добавляем кнопку "Скопировать" (просто визуальная подсказка)
             markup.add(types.InlineKeyboardButton("✅ Я ввел код", callback_data="code_entered"))
             
             bot.send_message(chat_id, 
@@ -189,7 +194,6 @@ def on_signing_doc(event):
             tg = op.get('tgChatId')
             if not tg: continue
             if '*' in targets or email in targets:
-                # Инлайн кнопка для документа
                 markup = types.InlineKeyboardMarkup()
                 markup.add(types.InlineKeyboardButton("📄 Ознакомиться и подписать", callback_data=f"read_doc_{title}"))
                 
@@ -200,15 +204,14 @@ def on_signing_doc(event):
     except Exception as e:
         print(f"Ошибка on_signing_doc: {e}")
 
-# Обработка нажатий на инлайн-кнопки
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     if call.data == "code_entered":
         bot.answer_callback_query(call.id, "Отлично! Введите код в приложении.")
-        bot.delete_message(call.message.chat.id, call.message.message_id) # Удаляем сообщение с кодом для безопасности
+        bot.delete_message(call.message.chat.id, call.message.message_id)
     elif call.data.startswith("read_doc_"):
         bot.answer_callback_query(call.id, "Откройте приложение «Пульт оператора» → ✍️ Подписание")
-        bot.send_message(call.message.chat.id, "Для просмотра документа перейдите в приложение в раздел «✍️ Подписание».")
+        bot.send_message(call.message.chat.id, "Для просмотра документа перейдите в раздел «✍️ Подписание».")
 
 # ==========================================
 # 5. ДЕЖУРСТВА (ФОНОВАЯ ЗАДАЧА)
