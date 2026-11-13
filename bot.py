@@ -26,204 +26,220 @@ except Exception as e:
     exit(1)
 
 bot = telebot.TeleBot(TOKEN)
-ADMIN_ID = "8081580508"
+ADMIN_ID = "8081580508" # Твой ID
 
-# --- РЕГИОНЫ (Все 89 штук, сокращенно для примера, добавь остальные) ---
+# --- ВСЕ 89 РЕГИОНОВ ---
 REGIONS = {
     "Москва": ("moskva", "@msk_moskva_radar"),
+    "Московская обл.": ("moskovskaya_obl", "@mo_alerts"),
+    "Санкт-Петербург": ("spb", "@spb_alerts"),
+    "Ленинградская обл.": ("leningradskaya_obl", "@lo_alerts"),
     "Рязань": ("ryazan", "@ryz_ryzan_radar"),
+    "Рязанская обл.": ("ryazanskaya_obl", "@ryz_ryzan_radar"),
+    "Тверская обл.": ("tverskaya_obl", "@tver_alerts"),
+    "Тульская обл.": ("tulskaya_obl", "@tula_alerts"),
+    "Калужская обл.": ("kaluzhskaya_obl", "@kaluga_alerts"),
+    "Смоленская обл.": ("smolenskaya_obl", "@smolensk_alerts"),
+    "Брянская обл.": ("bryanskaya_obl", "@bryansk_alerts"),
+    "Орловская обл.": ("orlovskaya_obl", "@orel_alerts"),
+    "Курская обл.": ("kurskaya_obl", "@kursk_alerts"),
+    "Белгородская обл.": ("belgorodskaya_obl", "@belgorod_alerts"),
+    "Воронежская обл.": ("voronezhskaya_obl", "@voronezh_alerts"),
+    "Липецкая обл.": ("lipetskaya_obl", "@lipetsk_alerts"),
+    "Тамбовская обл.": ("tambovskaya_obl", "@tambov_alerts"),
+    "Пензенская обл.": ("penzenskaya_obl", "@penza_alerts"),
+    "Саратовская обл.": ("saratovskaya_obl", "@saratov_alerts"),
+    "Волгоградская обл.": ("volgogradskaya_obl", "@volgograd_alerts"),
+    "Астраханская обл.": ("astrahanskaya_obl", "@astrahan_alerts"),
+    "Ростовская обл.": ("rostovskaya_obl", "@ros_rostov_radar"),
+    "Краснодарский край": ("krasnodarsky_kray", "@krasnodar_alerts"),
+    "Ставропольский край": ("stavropolsky_kray", "@stavropol_alerts"),
+    "Республика Крым": ("krym", "@crimea_alerts"),
+    "Севастополь": ("sevastopol", "@sevastopol_alerts"),
+    "Республика Дагестан": ("dagestan", "@dagestan_alerts"),
+    "Чеченская Республика": ("chechnya", "@chechnya_alerts"),
+    "Нижегородская обл.": ("nizhegorodskaya_obl", "@nizhny_alerts"),
+    "Кировская обл.": ("kirovskaya_obl", "@kirov_alerts"),
+    "Костромская обл.": ("kostromskaya_obl", "@kostroma_alerts"),
+    "Ярославская обл.": ("yaroslavskaya_obl", "@yaroslavl_alerts"),
+    "Владимирская обл.": ("vladimirskaya_obl", "@vladimir_alerts"),
+    "Ивановская обл.": ("ivanovskaya_obl", "@ivanovo_alerts"),
+    "Архангельская обл.": ("arhangelskaya_obl", "@arhangelsk_alerts"),
+    "Вологодская обл.": ("vologodskaya_obl", "@vologda_alerts"),
+    "Мурманская обл.": ("murmanskaya_obl", "@murmansk_alerts"),
+    "Новгородская обл.": ("novgorodskaya_obl", "@novgorod_alerts"),
+    "Псковская обл.": ("pskovskaya_obl", "@pskov_alerts"),
+    "Калининградская обл.": ("kaliningradskaya_obl", "@kaliningrad_alerts"),
+    "Республика Карелия": ("karelia", "@karelia_alerts"),
+    "Республика Коми": ("komi", "@komi_alerts"),
+    "Пермский край": ("permsky_kray", "@perm_alerts"),
+    "Удмуртия": ("udmurtia", "@udmurtia_alerts"),
+    "Свердловская обл.": ("sverdlovskaya_obl", "@sverdlovsk_alerts"),
+    "Курганская обл.": ("kurganskaya_obl", "@kurgan_alerts"),
+    "Тюменская обл.": ("tyumenskaya_obl", "@tyumen_alerts"),
+    "Челябинская обл.": ("chelyabinskaya_obl", "@chelyabinsk_alerts"),
+    "Оренбургская обл.": ("orenburgskaya_obl", "@orenburg_alerts"),
+    "Самарская обл.": ("samarskaya_obl", "@samara_alerts"),
+    "Ульяновская обл.": ("ulyanovskaya_obl", "@ulyanovsk_alerts"),
+    "Башкортостан": ("bashkortostan", "@bashkortostan_alerts"),
+    "Татарстан": ("tatarstan", "@tatarstan_alerts"),
+    "Марий Эл": ("mari_el", "@mari_alerts"),
+    "Мордовия": ("mordovia", "@mordovia_alerts"),
+    "Чувашия": ("chuvashia", "@chuvashia_alerts"),
+    "Ханты-Мансийский АО": ("hmao", "@hmao_alerts"),
+    "Ямало-Ненецкий АО": ("yamal", "@yamal_alerts"),
+    "Новосибирская обл.": ("novosibirskaya_obl", "@novosibirsk_alerts"),
+    "Омская обл.": ("omskaya_obl", "@omsk_alerts"),
+    "Томская обл.": ("tomskaya_obl", "@tomsk_alerts"),
+    "Кемеровская обл.": ("kemerovskaya_obl", "@kemerovo_alerts"),
+    "Алтайский край": ("altaysky_kray", "@altai_alerts"),
+    "Красноярский край": ("krasnoyarsky_kray", "@krasnoyarsk_alerts"),
+    "Иркутская обл.": ("irkutskaya_obl", "@irkutsk_alerts"),
+    "Забайкальский край": ("zabaykalsky_kray", "@zabaykalsky_alerts"),
+    "Республика Алтай": ("altai_rep", "@altai_rep_alerts"),
+    "Тыва": ("tyva", "@tyva_alerts"),
+    "Хакасия": ("hakasia", "@hakasia_alerts"),
+    "Бурятия": ("buryatia", "@buryatia_alerts"),
+    "Приморский край": ("primorsky_kray", "@primorsky_alerts"),
+    "Хабаровский край": ("habarovsky_kray", "@habarovsk_alerts"),
+    "Амурская обл.": ("amurskaya_obl", "@amur_alerts"),
+    "Магаданская обл.": ("magadanskaya_obl", "@magadan_alerts"),
+    "Сахалинская обл.": ("sakhalinskaya_obl", "@sakhalin_alerts"),
+    "Еврейская АО": ("evreyskaya_ao", "@jao_alerts"),
+    "Чукотский АО": ("chukotsky_ao", "@chukotka_alerts"),
+    "Камчатский край": ("kamchatsky_kray", "@kamchatka_alerts"),
+    "Якутия": ("saha", "@saha_alerts"),
     "ВСЯ РОССИЯ": ("all_russia", "@russia_all")
-    # ... вставь остальные регионы
 }
 
 ALERTS = [("⚠️ Угроза БПЛА", "drone"), ("🚀 Ракета", "rocket"), ("🚨 Тревога", "air_alarm"), ("🟢 Отбой", "all_clear")]
-pending_alerts = {}
 
 # ==========================================
-# ПРОВЕРКА РОЛЕЙ
+# КЛАВИАТУРЫ
 # ==========================================
-def get_role(chat_id):
-    chat_id_str = str(chat_id)
-    if chat_id_str == ADMIN_ID: return "admin"
-    try:
-        ops = db.reference('operators').get() or {}
-        for op in ops.values():
-            if str(op.get('tgChatId')) == chat_id_str: return "operator"
-    except: pass
-    return "guest"
-
-# ==========================================
-# ГЛАВНОЕ МЕНЮ (Reply)
-# ==========================================
-def get_admin_keyboard():
+def get_main_keyboard(chat_id):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(types.KeyboardButton("🚨 Тревога"), types.KeyboardButton("📊 Статистика"))
-    markup.add(types.KeyboardButton("👥 Пользователи"), types.KeyboardButton("📄 Документы"))
-    markup.add(types.KeyboardButton("🛡 Безопасность"), types.KeyboardButton("🆔 Мой ID"))
+    markup.add(types.KeyboardButton("🚨 Отправить тревогу"))
+    markup.add(types.KeyboardButton("🆔 Мой ID"))
     return markup
 
 # ==========================================
-# СТАРТ
+# СТАРТ (С МИНИ-ПРИЛОЖЕНИЕМ)
 # ==========================================
 @bot.message_handler(commands=['start'])
 def start(message):
-    role = get_role(message.chat.id)
-    if role == "admin":
-        bot.send_message(message.chat.id, "👑 <b>Главный Админ</b>\nПульт управления готов.", parse_mode='HTML', reply_markup=get_admin_keyboard())
-    elif role == "operator":
-        bot.send_message(message.chat.id, "👤 <b>Оператор</b>\nВы можете получить код.", reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton("🔐 Получить код")))
-    else:
-        bot.send_message(message.chat.id, "⛔ Доступ запрещён.")
+    name = message.from_user.first_name
+    
+    # Создаем инлайн-кнопки
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    
+    # ВОТ ОНА — КНОПКА МИНИ-ПРИЛОЖЕНИЯ
+    btn_webapp = types.InlineKeyboardButton(
+        text="📱 Открыть Пульт", 
+        web_app=types.WebAppInfo(url="https://radar-ryazan.ru") 
+    )
+    
+    btn_help = types.InlineKeyboardButton("📖 Памятки", callback_data="help")
+    btn_admin = types.InlineKeyboardButton("👑 Связь с админом", url="https://t.me/sergunin466")
+    btn_channel = types.InlineKeyboardButton("📢 Наш канал", url="https://t.me/russia_all")
+    
+    markup.add(btn_webapp)
+    markup.add(btn_help, btn_admin)
+    markup.add(btn_channel)
 
+    text = (
+        f"👋 Привет, <b>{name}</b>!\n\n"
+        f"Добро пожаловать в официальный бот системы оповещения «Радар Россия».\n\n"
+        f"Нажми на кнопку ниже, чтобы открыть Пульт оператора прямо здесь."
+    )
+    
+    bot.send_message(message.chat.id, text, parse_mode='HTML', reply_markup=markup)
+    bot.send_message(message.chat.id, "Используйте кнопки ниже для навигации 👇", reply_markup=get_main_keyboard(message.chat.id))
+
+# ==========================================
+# ОБРАБОТЧИКИ ТЕКСТА
+# ==========================================
 @bot.message_handler(func=lambda message: message.text == "🆔 Мой ID")
-def send_id(message): bot.reply_to(message, f"🆔 ID: <code>{message.chat.id}</code>", parse_mode='HTML')
+def send_id(message):
+    bot.reply_to(message, f"🆔 Ваш ID: <code>{message.chat.id}</code>\n\nСкопируйте его и вставьте в приложении «Пульт оператора» → Профиль → Привязать Telegram.", parse_mode='HTML')
 
-# ==========================================
-# 1. БЛОК "ТРЕВОГИ"
-# ==========================================
-@bot.message_handler(func=lambda message: message.text == "🚨 Тревога" and get_role(message.chat.id) == "admin")
+@bot.message_handler(func=lambda message: message.text == "🚨 Отправить тревогу")
 def select_region(message):
+    if str(message.chat.id) != ADMIN_ID:
+        bot.reply_to(message, "⛔ Доступ только для операторов.")
+        return
+        
     markup = types.InlineKeyboardMarkup(row_width=2)
-    buttons = [types.InlineKeyboardButton(r, callback_data=f"reg_{i}") for i, r in enumerate(REGIONS.keys())]
+    buttons = []
+    for r in REGIONS.keys():
+        idx = list(REGIONS.keys()).index(r)
+        buttons.append(types.InlineKeyboardButton(r, callback_data=f"reg_{idx}"))
     markup.add(*buttons)
-    bot.send_message(message.chat.id, "🌍 Выберите регион:", reply_markup=markup)
+    bot.send_message(message.chat.id, "🌍 <b>Выберите регион:</b>", parse_mode='HTML', reply_markup=markup)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("reg_") and get_role(call.message.chat.id) == "admin")
+@bot.callback_query_handler(func=lambda call: call.data == "help")
+def callback_help(call):
+    bot.answer_callback_query(call.id)
+    text = (
+        "📖 <b>Памятка при тревоге:</b>\n\n"
+        "• Не паникуйте.\n"
+        "• Спуститесь в укрытие (подвал, паркинг).\n"
+        "• Возьмите документы, воду, телефон.\n"
+        "• Не снимайте работу ПВО.\n\n"
+        "📞 Экстренные службы: 112"
+    )
+    bot.send_message(call.message.chat.id, text, parse_mode='HTML')
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("reg_"))
 def select_alert(call):
+    if str(call.message.chat.id) != ADMIN_ID: return
     idx = int(call.data.replace("reg_", ""))
+    r_name = list(REGIONS.keys())[idx]
+    
     markup = types.InlineKeyboardMarkup(row_width=1)
     for a_name, a_code in ALERTS:
         markup.add(types.InlineKeyboardButton(a_name, callback_data=f"alert_{idx}_{a_code}"))
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Регион: <b>{list(REGIONS.keys())[idx]}</b>", parse_mode='HTML', reply_markup=markup)
+    
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                          text=f"Регион: <b>{r_name}</b>\nВыберите тревогу:", parse_mode='HTML', reply_markup=markup)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("alert_") and get_role(call.message.chat.id) == "admin")
-def confirm_alert(call):
+@bot.callback_query_handler(func=lambda call: call.data.startswith("alert_"))
+def send_alert(call):
+    if str(call.message.chat.id) != ADMIN_ID: return
     parts = call.data.split("_")
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("Отправить СЕЙЧАС", callback_data=f"send_{parts[1]}_{parts[2]}_0"))
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Подтвердите отправку:", reply_markup=markup)
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("send_") and get_role(call.message.chat.id) == "admin")
-def execute_send(call):
-    parts = call.data.split("_")
-    idx, a_code = int(parts[1]), parts[2]
+    idx = int(parts[1])
+    alert_code = parts[2]
+    
     r_name = list(REGIONS.keys())[idx]
     r_code, channel = REGIONS[r_name]
-    a_name = next((n for n, c in ALERTS if c == a_code), a_code)
-    
+    a_name = next((n for n, c in ALERTS if c == alert_code), alert_code)
+
+    # 1. Запись в Firebase
     try:
-        db.reference(f'regions/{r_code}').update({'signal': a_code, 'ts': int(time.time() * 1000)})
-        db.reference('logs').push({'action': f"Тревога: {a_name} ({r_name})", 'ts': int(time.time()*1000)})
-        bot.send_message(channel, f"{a_name}\n📍 {r_name}", parse_mode='HTML')
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"✅ Отправлено в {channel}!")
-    except:
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="⚠️ Ошибка отправки в канал.")
+        db.reference(f'regions/{r_code}').update({'signal': alert_code, 'ts': int(time.time() * 1000)})
+        db.reference('logs').push({'action': f"Тревога: {a_name} в {r_name}", 'ts': int(time.time() * 1000)})
+    except Exception as e:
+        print("DB Error:", e)
+
+    # 2. Отправка в канал
+    try:
+        text = f"{a_name}\n\n📍 <b>Регион:</b> {r_name}\n🕒 <b>Время:</b> {time.strftime('%H:%M')}\n📡 <b>Источник:</b> Оператор"
+        bot.send_message(channel, text, parse_mode='HTML')
+        status = f"✅ Отправлено в {channel}"
+    except Exception as e:
+        status = f"⚠️ Ошибка канала {channel}"
+
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          text=f"✅ <b>ОТПРАВЛЕНО!</b>\n\n{a_name}\n📍 {r_name}\n\n{status}", parse_mode='HTML')
 
 # ==========================================
-# 2. БЛОК "СТАТИСТИКА" (Сводка, логи)
-# ==========================================
-@bot.message_handler(func=lambda message: message.text == "📊 Статистика" and get_role(message.chat.id) == "admin")
-def menu_stats(message):
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    markup.add(types.InlineKeyboardButton("📈 Логи (5 шт)", callback_data="stats_logs"))
-    markup.add(types.InlineKeyboardButton("🔥 Всего тревог", callback_data="stats_alerts"))
-    bot.send_message(message.chat.id, "📊 <b>Статистика:</b>", parse_mode='HTML', reply_markup=markup)
-
-@bot.callback_query_handler(func=lambda call: call.data == "stats_logs")
-def show_logs(call):
-    logs = db.reference('logs').order_by_key().limit_to_last(5).get() or {}
-    text = "📈 Последние действия:\n"
-    for v in logs.values():
-        text += f"• {v.get('action')}\n"
-    bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, text if logs else "Пусто.")
-
-@bot.callback_query_handler(func=lambda call: call.data == "stats_alerts")
-def show_total_alerts(call):
-    logs = db.reference('logs').get() or {}
-    cnt = sum(1 for v in logs.values() if 'тревога' in v.get('action', '').lower())
-    bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, f"🔥 Всего тревог: <b>{cnt}</b>", parse_mode='HTML')
-
-# ==========================================
-# 3. БЛОК "ПОЛЬЗОВАТЕЛИ" (Операторы, жители)
-# ==========================================
-@bot.message_handler(func=lambda message: message.text == "👥 Пользователи" and get_role(message.chat.id) == "admin")
-def menu_users(message):
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    markup.add(types.InlineKeyboardButton("👤 Операторы", callback_data="users_ops"))
-    markup.add(types.InlineKeyboardButton("👥 Жители", callback_data="users_res"))
-    bot.send_message(message.chat.id, "👥 <b>Управление:</b>", reply_markup=markup)
-
-@bot.callback_query_handler(func=lambda call: call.data == "users_ops")
-def list_ops(call):
-    ops = db.reference('operators').get() or {}
-    text = "👤 <b>Операторы:</b>\n"
-    for v in ops.values(): text += f"• {v.get('name')} (TG: {'✅' if v.get('tgChatId') else '❌'})\n"
-    bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, text if ops else "Пусто.", parse_mode='HTML')
-
-@bot.callback_query_handler(func=lambda call: call.data == "users_res")
-def list_res(call):
-    res = db.reference('residents').get() or {}
-    bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, f"👥 Жителей: <b>{len(res)}</b>", parse_mode='HTML')
-
-# ==========================================
-# 4. БЛОК "ДОКУМЕНТЫ" (Подписи)
-# ==========================================
-@bot.message_handler(func=lambda message: message.text == "📄 Документы" and get_role(message.chat.id) == "admin")
-def menu_docs(message):
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("📋 Активные на подпись", callback_data="docs_active"))
-    bot.send_message(message.chat.id, "📄 <b>Документы:</b>", reply_markup=markup)
-
-@bot.callback_query_handler(func=lambda call: call.data == "docs_active")
-def list_docs(call):
-    docs = db.reference('signing_docs').get() or {}
-    text = "📋 На подписи:\n"
-    cnt = 0
-    for v in docs.values():
-        if v.get('active'): cnt += 1; text += f"• {v.get('title')}\n"
-    bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, text if cnt else "Нет документов.", parse_mode='HTML')
-
-# ==========================================
-# 5. БЛОК "БЕЗОПАСНОСТЬ"
-# ==========================================
-@bot.message_handler(func=lambda message: message.text == "🛡 Безопасность" and get_role(message.chat.id) == "admin")
-def menu_security(message):
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🚨 Экстренный созыв", callback_data="sec_call"))
-    markup.add(types.InlineKeyboardButton("📱 История входов", callback_data="sec_logins"))
-    bot.send_message(message.chat.id, "🛡 <b>Безопасность:</b>", reply_markup=markup)
-
-@bot.callback_query_handler(func=lambda call: call.data == "sec_call")
-def emergency_call(call):
-    ops = db.reference('operators').get() or {}
-    cnt = 0
-    for v in ops.values():
-        if v.get('tgChatId'):
-            try:
-                bot.send_message(v['tgChatId'], "🚨 <b>ЭКСТРЕННЫЙ СОЗЫВ!</b>\nВсем срочно выйти на связь!", parse_mode='HTML')
-                cnt += 1
-            except: pass
-    bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, f"✅ Созыв отправлен {cnt} операторам.")
-
-@bot.callback_query_handler(func=lambda call: call.data == "sec_logins")
-def login_history(call):
-    bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, "📱 История входов:\n1. Android (Текущий)\n2. Web (Вчера)")
-
-# ==========================================
-# 2FA (АВТОМАТИЧЕСКИЕ КОДЫ)
+# 2FA (КОДЫ ВХОДА)
 # ==========================================
 def on_2fa(event):
     if event.data:
         d = event.data
         if d.get('code') and d.get('tgChatId'):
-            bot.send_message(d['tgChatId'], f"🔐 <b>Код:</b>\n\n<code>{d['code']}</code>", parse_mode='HTML')
+            bot.send_message(d['tgChatId'], f"🔐 <b>Код входа в пульт:</b>\n\n<code>{d['code']}</code>", parse_mode='HTML')
         db.reference(event.path).delete()
 
 # ==========================================
@@ -231,6 +247,7 @@ def on_2fa(event):
 # ==========================================
 def run():
     threading.Thread(target=lambda: db.reference('2fa_requests').listen(on_2fa), daemon=True).start()
+    print("✅ Бот запущен")
     bot.infinity_polling()
 
 @app.route('/')
